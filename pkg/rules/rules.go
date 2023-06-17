@@ -71,16 +71,43 @@ func (c *Condition) Evaluate(fact Fact) bool {
 		return reflect.DeepEqual(factValue, c.Value)
 	case "notEqual":
 		return !reflect.DeepEqual(factValue, c.Value)
-	// case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
-	// These operators are not supported for all types, so we'll assume numerical values were already checked
-	case "greaterThan":
-		return factValue > c.Value
-	case "greaterThanOrEqual":
-		return factValue >= c.Value
-	case "lessThan":
-		return factValue < c.Value
-	case "lessThanOrEqual":
-		return factValue <= c.Value
+	case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
+		// These operators are not supported for all types, so we'll handle each type separately
+		switch factValue := factValue.(type) {
+		case int:
+			value, ok := c.Value.(int)
+			if !ok {
+				return false
+			}
+			switch c.Operator {
+			case "greaterThan":
+				return factValue > value
+			case "greaterThanOrEqual":
+				return factValue >= value
+			case "lessThan":
+				return factValue < value
+			case "lessThanOrEqual":
+				return factValue <= value
+			}
+		case float64:
+			value, ok := c.Value.(float64)
+			if !ok {
+				return false
+			}
+			switch c.Operator {
+			case "greaterThan":
+				return factValue > value
+			case "greaterThanOrEqual":
+				return factValue >= value
+			case "lessThan":
+				return factValue < value
+			case "lessThanOrEqual":
+				return factValue <= value
+			}
+		default:
+			// If the fact value is not a numeric type, these operators are not supported
+			return false
+		}
 	case "contains":
 		// This operator is only supported for strings
 		factStr, ok1 := factValue.(string)
@@ -101,4 +128,5 @@ func (c *Condition) Evaluate(fact Fact) bool {
 		// If the operator is not recognized, the condition is not satisfied
 		return false
 	}
+	return false
 }
