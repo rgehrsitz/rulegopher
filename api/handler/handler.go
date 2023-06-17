@@ -52,3 +52,16 @@ func (h *Handler) EvaluateFact(w http.ResponseWriter, r *http.Request) {
 	events := h.factHandler.HandleFact(fact)
 	json.NewEncoder(w).Encode(events)
 }
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/addrule":
+		h.AddRule(w, r)
+	case "/removerule":
+		h.RemoveRule(w, r)
+	case "/evaluatefact":
+		h.EvaluateFact(w, r)
+	default:
+		http.NotFound(w, r)
+	}
+}
