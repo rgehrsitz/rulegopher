@@ -29,11 +29,19 @@ func main() {
 	// http.HandleFunc("/evaluateFact", apiHandler.EvaluateFact)
 
 	// The following are equivalent to the above but with logging middleware
+	//	http.Handle("/addRule", middleware.LoggingMiddleware(http.HandlerFunc(apiHandler.AddRule)))
+	fmt.Println("Starting server...")
 	http.Handle("/addRule", middleware.LoggingMiddleware(http.HandlerFunc(apiHandler.AddRule)))
+	fmt.Println("Registered /addRule route")
+
 	http.Handle("/removeRule", middleware.LoggingMiddleware(http.HandlerFunc(apiHandler.RemoveRule)))
+	fmt.Println("Registered /removeRule route")
+
 	http.Handle("/evaluateFact", middleware.LoggingMiddleware(http.HandlerFunc(apiHandler.EvaluateFact)))
+	fmt.Println("Registered /evaluateFact route")
 
 	// Start the server
 	fmt.Printf("Starting server on port %s\n", *port)
 	http.ListenAndServe(":"+*port, nil)
+	fmt.Println("Server started")
 }

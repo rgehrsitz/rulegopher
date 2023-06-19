@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -67,10 +67,60 @@ func TestIntegration(t *testing.T) {
 	}
 
 	// Check that the correct event was returned
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	var events []rules.Event
 	json.Unmarshal(body, &events)
 	if len(events) != 1 || events[0].EventType != "alert" {
+		t.Errorf("HandleFact returned incorrect events: got %v", events)
+	}
+}
+
+func TestAddRuleInvalidJSON(t *testing.T) {
+	e := engine.NewEngine()
+	fh := facts.NewFactHandler(e)
+	h := handler.NewHandler(e, fh)
+
+	server := httptest.NewServer(h)
+	defer server.Close()
+
+	// Send a request to add a rule with an invalid JSON body
+	resp, err := http.Post(server.URL+"/addrule", "application/json", bytes.NewBuffer([]byte("{invalid json}")))
+	if err != nil {
+		t.Fatalf("Failed to send request to add rule: %v", err)
+	}
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v", resp.StatusCode, http.StatusBadRequest)
+	}
+}
+
+func TestEvaluateFactNoRulesSatisfied(t *testing.T) {
+	e := engine.NewEngine()
+	fh := facts.NewFactHandler(e)
+	h := handler.NewHandler(e, fh)
+
+	server := httptest.NewServer(h)
+	defer server.Close()
+
+	// Define a fact that doesn't satisfy any rules
+	fact := rules.Fact{
+		"temperature": 25,
+	}
+
+	// Send a request to evaluate the fact
+	factJSON, _ := json.Marshal(fact)
+	resp, err := http.Post(server.URL+"/evaluatefact", "application/json", bytes.NewBuffer(factJSON))
+	if err != nil {
+		t.Fatalf("Failed to send request to evaluate fact: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", resp.StatusCode, http.StatusOK)
+	}
+
+	// Check that no events were returned
+	body, _ := io.ReadAll(resp.Body)
+	var events []rules.Event
+	json.Unmarshal(body, &events)
+	if len(events) != 0 {
 		t.Errorf("HandleFact returned incorrect events: got %v", events)
 	}
 }
