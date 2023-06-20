@@ -2,6 +2,7 @@ package rules
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -23,9 +24,11 @@ type Conditions struct {
 }
 
 type Condition struct {
-	Fact     string      `json:"fact"`
-	Operator string      `json:"operator"`
-	Value    interface{} `json:"value"`
+	Fact     string      `json:"fact,omitempty"`
+	Operator string      `json:"operator,omitempty"`
+	Value    interface{} `json:"value,omitempty"`
+	All      []Condition `json:"all,omitempty"`
+	Any      []Condition `json:"any,omitempty"`
 }
 
 type Fact map[string]interface{}
@@ -58,75 +61,92 @@ func (r *Rule) Evaluate(fact Fact) bool {
 }
 
 func (c *Condition) Evaluate(fact Fact) bool {
-	// Get the fact value
-	factValue, ok := fact[c.Fact]
-	if !ok {
-		// If the fact is not present, the condition is not satisfied
+	// If this is a simple condition, evaluate it based on the fact, operator, and value
+	if c.Fact != "" && c.Operator != "" {
+		// Get the fact value
+		factValue, ok := fact[c.Fact]
+		if !ok {
+			// If the fact is not present, the condition is not satisfied
+			return false
+		}
+
+		// Compare the fact value to the condition value based on the operator
+		switch c.Operator {
+		case "equal":
+			return reflect.DeepEqual(factValue, c.Value)
+		case "notEqual":
+			return !reflect.DeepEqual(factValue, c.Value)
+		case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
+			// Convert the fact value and condition value to float64
+			factFloat, ok1 := convertToFloat64(factValue)
+			valueFloat, ok2 := convertToFloat64(c.Value)
+			if !ok1 || !ok2 {
+				return false
+			}
+			switch c.Operator {
+			case "greaterThan":
+				return factFloat > valueFloat
+			case "greaterThanOrEqual":
+				return factFloat >= valueFloat
+			case "lessThan":
+				return factFloat < valueFloat
+			case "lessThanOrEqual":
+				return factFloat <= valueFloat
+			}
+
+		case "contains":
+			// This operator is only supported for strings
+			factStr, ok1 := factValue.(string)
+			valueStr, ok2 := c.Value.(string)
+			if ok1 && ok2 {
+				return strings.Contains(factStr, valueStr)
+			}
+			return false
+		case "notContains":
+			// This operator is only supported for strings
+			factStr, ok1 := factValue.(string)
+			valueStr, ok2 := c.Value.(string)
+			if ok1 && ok2 {
+				return !strings.Contains(factStr, valueStr)
+			}
+			return false
+		default:
+			// If the operator is not recognized, the condition is not satisfied
+			return false
+		}
+	}
+	// If this is a complex condition, evaluate the nested conditions
+	for _, condition := range c.All {
+		if !condition.Evaluate(fact) {
+			// If any 'all' condition is not satisfied, the condition is not satisfied
+			return false
+		}
+	}
+	if len(c.Any) > 0 {
+		for _, condition := range c.Any {
+			if condition.Evaluate(fact) {
+				// If any 'any' condition is satisfied, the condition is satisfied
+				return true
+			}
+		}
+		// If no 'any' conditions are satisfied, the condition is not satisfied
 		return false
 	}
 
-	// Compare the fact value to the condition value based on the operator
-	switch c.Operator {
-	case "equal":
-		return reflect.DeepEqual(factValue, c.Value)
-	case "notEqual":
-		return !reflect.DeepEqual(factValue, c.Value)
-	case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
-		// These operators are not supported for all types, so we'll handle each type separately
-		switch factValue := factValue.(type) {
-		case int:
-			value, ok := c.Value.(int)
-			if !ok {
-				return false
-			}
-			switch c.Operator {
-			case "greaterThan":
-				return factValue > value
-			case "greaterThanOrEqual":
-				return factValue >= value
-			case "lessThan":
-				return factValue < value
-			case "lessThanOrEqual":
-				return factValue <= value
-			}
-		case float64:
-			value, ok := c.Value.(float64)
-			if !ok {
-				return false
-			}
-			switch c.Operator {
-			case "greaterThan":
-				return factValue > value
-			case "greaterThanOrEqual":
-				return factValue >= value
-			case "lessThan":
-				return factValue < value
-			case "lessThanOrEqual":
-				return factValue <= value
-			}
-		default:
-			// If the fact value is not a numeric type, these operators are not supported
-			return false
+	// If there are no 'all' or 'any' conditions, the condition is satisfied
+	return true
+}
+
+func convertToFloat64(value interface{}) (float64, bool) {
+	switch value := value.(type) {
+	case int:
+		return float64(value), true
+	case float64:
+		return value, true
+	case string:
+		if v, err := strconv.ParseFloat(value, 64); err == nil {
+			return v, true
 		}
-	case "contains":
-		// This operator is only supported for strings
-		factStr, ok1 := factValue.(string)
-		valueStr, ok2 := c.Value.(string)
-		if ok1 && ok2 {
-			return strings.Contains(factStr, valueStr)
-		}
-		return false
-	case "notContains":
-		// This operator is only supported for strings
-		factStr, ok1 := factValue.(string)
-		valueStr, ok2 := c.Value.(string)
-		if ok1 && ok2 {
-			return !strings.Contains(factStr, valueStr)
-		}
-		return false
-	default:
-		// If the operator is not recognized, the condition is not satisfied
-		return false
 	}
-	return false
+	return 0, false
 }
