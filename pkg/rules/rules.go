@@ -14,10 +14,10 @@ type Rule struct {
 }
 
 type Event struct {
-	EventType      string      `json:"eventType"`
-	CustomProperty interface{} `json:"customProperty"`
-	Fact           string      `json:"fact,omitempty"`
-	Value          interface{} `json:"value,omitempty"`
+	EventType      string        `json:"eventType"`
+	CustomProperty interface{}   `json:"customProperty"`
+	Facts          []string      `json:"facts,omitempty"`
+	Values         []interface{} `json:"values,omitempty"`
 }
 
 type Conditions struct {
@@ -35,131 +35,120 @@ type Condition struct {
 
 type Fact map[string]interface{}
 
-// Add functions for adding, removing, and updating rules here.
 func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) bool {
-	// Evaluate the 'all' conditions
 	for _, condition := range r.Conditions.All {
-		satisfied, fact, value := condition.Evaluate(fact)
+		satisfied, facts, values := condition.Evaluate(fact)
 		if !satisfied {
 			return false
 		}
 		if satisfied && includeTriggeringFact {
-			r.Event.Fact = fact
-			r.Event.Value = value
+			r.Event.Facts = append(r.Event.Facts, facts...)
+			r.Event.Values = append(r.Event.Values, values...)
 		}
 	}
 
-	// If there are no 'any' conditions, and all 'all' conditions are satisfied, the rule is satisfied
 	if len(r.Conditions.Any) == 0 {
 		return true
 	}
 
-	// Evaluate the 'any' conditions
 	for _, condition := range r.Conditions.Any {
-		satisfied, fact, value := condition.Evaluate(fact)
+		satisfied, facts, values := condition.Evaluate(fact)
 		if satisfied {
 			if includeTriggeringFact {
-				r.Event.Fact = fact
-				r.Event.Value = value
+				r.Event.Facts = append(r.Event.Facts, facts...)
+				r.Event.Values = append(r.Event.Values, values...)
 			}
 			return true
 		}
 	}
 
-	// If no 'any' conditions are satisfied, the rule is not satisfied
 	return false
 }
 
-func (c *Condition) Evaluate(fact Fact) (bool, string, interface{}) {
-	// If this is a simple condition, evaluate it based on the fact, operator, and value
+func (c *Condition) Evaluate(fact Fact) (bool, []string, []interface{}) {
 	if c.Fact != "" && c.Operator != "" {
-		// Get the fact value
 		factValue, ok := fact[c.Fact]
 		if !ok {
-			// If the fact is not present, the condition is not satisfied
-			return false, "", nil
+			return false, nil, nil
 		}
 
-		// Compare the fact value to the condition value based on the operator
 		switch c.Operator {
 		case "equal":
 			if reflect.DeepEqual(factValue, c.Value) {
-				return true, c.Fact, c.Value
+				return true, []string{c.Fact}, []interface{}{factValue}
 			}
 		case "notEqual":
 			if !reflect.DeepEqual(factValue, c.Value) {
-				return true, c.Fact, c.Value
+				return true, []string{c.Fact}, []interface{}{factValue}
 			}
 		case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
-			// Convert the fact value and condition value to float64
 			factFloat, ok1 := convertToFloat64(factValue)
 			valueFloat, ok2 := convertToFloat64(c.Value)
 			if !ok1 || !ok2 {
-				return false, "", nil
+				return false, nil, nil
 			}
 			switch c.Operator {
 			case "greaterThan":
-				// assuming factValue and c.Value are float64 for simplicity
 				if factFloat > valueFloat {
-					return true, c.Fact, c.Value
+					return true, []string{c.Fact}, []interface{}{factValue}
 				}
 			case "greaterThanOrEqual":
 				if factFloat >= valueFloat {
-					return true, c.Fact, c.Value
+					return true, []string{c.Fact}, []interface{}{factValue}
 				}
 			case "lessThan":
 				if factFloat < valueFloat {
-					return true, c.Fact, c.Value
+					return true, []string{c.Fact}, []interface{}{factValue}
 				}
 			case "lessThanOrEqual":
 				if factFloat <= valueFloat {
-					return true, c.Fact, c.Value
+					return true, []string{c.Fact}, []interface{}{factValue}
 				}
 			}
 		case "contains":
-			// This operator is only supported for strings
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := c.Value.(string)
 			if ok1 && ok2 && strings.Contains(factStr, valueStr) {
-				return true, c.Fact, c.Value
+				return true, []string{c.Fact}, []interface{}{factValue}
 			}
 		case "notContains":
-			// This operator is only supported for strings
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := c.Value.(string)
 			if ok1 && ok2 && !strings.Contains(factStr, valueStr) {
-				return true, c.Fact, c.Value
+				return true, []string{c.Fact}, []interface{}{factValue}
 			}
 		}
-
-		// If the operator is not recognized or the condition is not satisfied, return false
-		return false, "", nil
+		return false, nil, nil
 	}
 
-	// If this is a complex condition, evaluate the nested conditions
+	var facts []string
+	var values []interface{}
+
 	for _, condition := range c.All {
 		satisfied, fact, value := condition.Evaluate(fact)
 		if !satisfied {
-			// If any 'all' condition is not satisfied, the condition is not satisfied
-			return false, "", nil
+			return false, nil, nil
 		}
 		if satisfied {
-			return true, fact, value
+			facts = append(facts, fact...)
+			values = append(values, value...)
 		}
 	}
+
 	if len(c.Any) > 0 {
 		for _, condition := range c.Any {
 			satisfied, fact, value := condition.Evaluate(fact)
 			if satisfied {
-				return true, fact, value
+				facts = append(facts, fact...)
+				values = append(values, value...)
 			}
 		}
-		// If no 'any' conditions are satisfied, the condition is not satisfied
-		return false, "", nil
+		if len(facts) == 0 {
+			return false, nil, nil
+		}
 	}
 
-	// If there are no 'all' or 'any' conditions, the condition is satisfied
-	return true, "", nil
+	return true, facts, values
 }
 
 func convertToFloat64(value interface{}) (float64, bool) {
