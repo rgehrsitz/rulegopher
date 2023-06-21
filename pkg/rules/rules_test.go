@@ -23,12 +23,14 @@ func TestConditionEvaluate(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be true
-	if !condition.Evaluate(factTrue) {
+	satisfied, _, _ := condition.Evaluate(factTrue)
+	if !satisfied {
 		t.Errorf("Expected condition to be true, but it was false")
 	}
 
 	// Test the condition with the fact where it should be false
-	if condition.Evaluate(factFalse) {
+	satisfied, _, _ = condition.Evaluate(factFalse)
+	if satisfied {
 		t.Errorf("Expected condition to be false, but it was true")
 	}
 }
@@ -76,14 +78,16 @@ func TestConditionEvaluate2(t *testing.T) {
 
 	// Test each condition with the fact where it should be true
 	for _, condition := range conditions {
-		if !condition.Evaluate(factTrue) {
+		satisfied, _, _ := condition.Evaluate(factTrue)
+		if !satisfied {
 			t.Errorf("Expected condition to be true, but it was false")
 		}
 	}
 
 	// Test each condition with the fact where it should be false
 	for _, condition := range conditions {
-		if condition.Evaluate(factFalse) {
+		satisfied, _, _ := condition.Evaluate(factFalse)
+		if satisfied {
 			t.Errorf("Expected condition to be false, but it was true")
 		}
 	}
@@ -143,12 +147,12 @@ func TestRuleEvaluate3(t *testing.T) {
 	}
 
 	// Test the rule with the fact where it should be satisfied
-	if !rule.Evaluate(factTrue) {
+	if !rule.Evaluate(factTrue, true) {
 		t.Errorf("Expected rule to be satisfied, but it was not")
 	}
 
 	// Test the rule with the fact where it should not be satisfied
-	if rule.Evaluate(factFalse) {
+	if rule.Evaluate(factFalse, true) {
 		t.Errorf("Expected rule to not be satisfied, but it was")
 	}
 }

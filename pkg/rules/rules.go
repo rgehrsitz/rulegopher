@@ -16,6 +16,8 @@ type Rule struct {
 type Event struct {
 	EventType      string      `json:"eventType"`
 	CustomProperty interface{} `json:"customProperty"`
+	Fact           string      `json:"fact,omitempty"`
+	Value          interface{} `json:"value,omitempty"`
 }
 
 type Conditions struct {
@@ -34,12 +36,16 @@ type Condition struct {
 type Fact map[string]interface{}
 
 // Add functions for adding, removing, and updating rules here.
-func (r *Rule) Evaluate(fact Fact) bool {
+func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) bool {
 	// Evaluate the 'all' conditions
 	for _, condition := range r.Conditions.All {
-		if !condition.Evaluate(fact) {
-			// If any 'all' condition is not satisfied, the rule is not satisfied
+		satisfied, fact, value := condition.Evaluate(fact)
+		if !satisfied {
 			return false
+		}
+		if satisfied && includeTriggeringFact {
+			r.Event.Fact = fact
+			r.Event.Value = value
 		}
 	}
 
@@ -50,8 +56,12 @@ func (r *Rule) Evaluate(fact Fact) bool {
 
 	// Evaluate the 'any' conditions
 	for _, condition := range r.Conditions.Any {
-		if condition.Evaluate(fact) {
-			// If any 'any' condition is satisfied, the rule is satisfied
+		satisfied, fact, value := condition.Evaluate(fact)
+		if satisfied {
+			if includeTriggeringFact {
+				r.Event.Fact = fact
+				r.Event.Value = value
+			}
 			return true
 		}
 	}
@@ -60,81 +70,96 @@ func (r *Rule) Evaluate(fact Fact) bool {
 	return false
 }
 
-func (c *Condition) Evaluate(fact Fact) bool {
+func (c *Condition) Evaluate(fact Fact) (bool, string, interface{}) {
 	// If this is a simple condition, evaluate it based on the fact, operator, and value
 	if c.Fact != "" && c.Operator != "" {
 		// Get the fact value
 		factValue, ok := fact[c.Fact]
 		if !ok {
 			// If the fact is not present, the condition is not satisfied
-			return false
+			return false, "", nil
 		}
 
 		// Compare the fact value to the condition value based on the operator
 		switch c.Operator {
 		case "equal":
-			return reflect.DeepEqual(factValue, c.Value)
+			if reflect.DeepEqual(factValue, c.Value) {
+				return true, c.Fact, c.Value
+			}
 		case "notEqual":
-			return !reflect.DeepEqual(factValue, c.Value)
+			if !reflect.DeepEqual(factValue, c.Value) {
+				return true, c.Fact, c.Value
+			}
 		case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
 			// Convert the fact value and condition value to float64
 			factFloat, ok1 := convertToFloat64(factValue)
 			valueFloat, ok2 := convertToFloat64(c.Value)
 			if !ok1 || !ok2 {
-				return false
+				return false, "", nil
 			}
 			switch c.Operator {
 			case "greaterThan":
-				return factFloat > valueFloat
+				// assuming factValue and c.Value are float64 for simplicity
+				if factFloat > valueFloat {
+					return true, c.Fact, c.Value
+				}
 			case "greaterThanOrEqual":
-				return factFloat >= valueFloat
+				if factFloat >= valueFloat {
+					return true, c.Fact, c.Value
+				}
 			case "lessThan":
-				return factFloat < valueFloat
+				if factFloat < valueFloat {
+					return true, c.Fact, c.Value
+				}
 			case "lessThanOrEqual":
-				return factFloat <= valueFloat
+				if factFloat <= valueFloat {
+					return true, c.Fact, c.Value
+				}
 			}
-
 		case "contains":
 			// This operator is only supported for strings
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := c.Value.(string)
-			if ok1 && ok2 {
-				return strings.Contains(factStr, valueStr)
+			if ok1 && ok2 && strings.Contains(factStr, valueStr) {
+				return true, c.Fact, c.Value
 			}
-			return false
 		case "notContains":
 			// This operator is only supported for strings
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := c.Value.(string)
-			if ok1 && ok2 {
-				return !strings.Contains(factStr, valueStr)
+			if ok1 && ok2 && !strings.Contains(factStr, valueStr) {
+				return true, c.Fact, c.Value
 			}
-			return false
-		default:
-			// If the operator is not recognized, the condition is not satisfied
-			return false
 		}
+
+		// If the operator is not recognized or the condition is not satisfied, return false
+		return false, "", nil
 	}
+
 	// If this is a complex condition, evaluate the nested conditions
 	for _, condition := range c.All {
-		if !condition.Evaluate(fact) {
+		satisfied, fact, value := condition.Evaluate(fact)
+		if !satisfied {
 			// If any 'all' condition is not satisfied, the condition is not satisfied
-			return false
+			return false, "", nil
+		}
+		if satisfied {
+			return true, fact, value
 		}
 	}
 	if len(c.Any) > 0 {
 		for _, condition := range c.Any {
-			if condition.Evaluate(fact) {
-				// If any 'any' condition is satisfied, the condition is satisfied
-				return true
+			satisfied, fact, value := condition.Evaluate(fact)
+			if satisfied {
+				return true, fact, value
 			}
 		}
 		// If no 'any' conditions are satisfied, the condition is not satisfied
-		return false
+		return false, "", nil
 	}
 
 	// If there are no 'all' or 'any' conditions, the condition is satisfied
-	return true
+	return true, "", nil
 }
 
 func convertToFloat64(value interface{}) (float64, bool) {

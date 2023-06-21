@@ -52,7 +52,7 @@ func (e *Engine) Evaluate(fact rules.Fact) []rules.Event {
 
 	events := make([]rules.Event, 0)
 	for _, rule := range e.Rules {
-		if rule.Evaluate(fact) {
+		if rule.Evaluate(fact, true) {
 			events = append(events, rule.Event)
 		}
 	}
