@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"sort"
 	"sync"
 
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
@@ -30,17 +31,42 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 		}
 	}
 
-	e.Rules = append(e.Rules, rule)
+	// Insert the rule in the correct position to maintain sorted order
+	index := sort.Search(len(e.Rules), func(i int) bool {
+		return e.Rules[i].Priority > rule.Priority
+	})
+	e.Rules = append(e.Rules, rules.Rule{})
+	copy(e.Rules[index+1:], e.Rules[index:])
+	e.Rules[index] = rule
+
 	e.addToIndex(&rule)
 	return nil
 }
 
 func (e *Engine) addToIndex(rule *rules.Rule) {
 	for _, condition := range rule.Conditions.All {
-		e.RuleIndex[condition.Fact] = append(e.RuleIndex[condition.Fact], rule)
+		rules := e.RuleIndex[condition.Fact]
+		// Find the correct position to insert the new rule
+		index := sort.Search(len(rules), func(i int) bool {
+			return rules[i].Priority > rule.Priority
+		})
+		// Insert the rule in the correct position
+		rules = append(rules, nil)
+		copy(rules[index+1:], rules[index:])
+		rules[index] = rule
+		e.RuleIndex[condition.Fact] = rules
 	}
 	for _, condition := range rule.Conditions.Any {
-		e.RuleIndex[condition.Fact] = append(e.RuleIndex[condition.Fact], rule)
+		rules := e.RuleIndex[condition.Fact]
+		// Find the correct position to insert the new rule
+		index := sort.Search(len(rules), func(i int) bool {
+			return rules[i].Priority > rule.Priority
+		})
+		// Insert the rule in the correct position
+		rules = append(rules, nil)
+		copy(rules[index+1:], rules[index:])
+		rules[index] = rule
+		e.RuleIndex[condition.Fact] = rules
 	}
 }
 
@@ -104,6 +130,10 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 			e.removeFromIndex(&rule)
 			e.Rules[i] = newRule
 			e.addToIndex(&newRule)
+			// Re-sort the rules after updating
+			sort.Slice(e.Rules, func(i, j int) bool {
+				return e.Rules[i].Priority < e.Rules[j].Priority
+			})
 			return nil
 		}
 	}
