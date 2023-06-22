@@ -78,3 +78,90 @@ func TestEvaluateFact(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 }
+
+func TestHandlerAddRuleWithMissingFields(t *testing.T) {
+	// Create a new engine and fact handler
+	eng := engine.NewEngine()
+	fh := facts.NewFactHandler(eng)
+
+	// Create a new handler with the engine and fact handler
+	h := NewHandler(eng, fh)
+
+	// Create a new HTTP request with a rule that has missing fields
+	req, err := http.NewRequest("POST", "/addrule", bytes.NewBuffer([]byte(`{
+		"Name": "",
+		"Conditions": {
+			"All": [],
+			"Any": []
+		},
+		"Event": {
+			"EventType": ""
+		}
+	}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+
+	// Call the AddRule method
+	h.AddRule(rr, req)
+
+	// Check that an HTTP 400 Bad Request error was returned
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+	}
+}
+
+func TestHandlerRemoveRuleWithNonexistentRuleName(t *testing.T) {
+	// Create a new engine and fact handler
+	eng := engine.NewEngine()
+	fh := facts.NewFactHandler(eng)
+
+	// Create a new handler with the engine and fact handler
+	h := NewHandler(eng, fh)
+
+	// Create a new HTTP request with a rule name that does not exist
+	req, err := http.NewRequest("DELETE", "/removerule?name=NonexistentRule", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+
+	// Call the RemoveRule method
+	h.RemoveRule(rr, req)
+
+	// Check that an HTTP 200 OK status code was returned
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
+
+func TestHandlerEvaluateFactWithInvalidInput(t *testing.T) {
+	// Create a new engine and fact handler
+	eng := engine.NewEngine()
+	fh := facts.NewFactHandler(eng)
+
+	// Create a new handler with the engine and fact handler
+	h := NewHandler(eng, fh)
+
+	// Create a new HTTP request with invalid input
+	req, err := http.NewRequest("POST", "/evaluatefact", bytes.NewBuffer([]byte(`{"invalid": "input",`))) // malformed JSON
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+
+	// Call the EvaluateFact method
+	h.EvaluateFact(rr, req)
+
+	// Check that an HTTP 400 Bad Request error was returned
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+	}
+}

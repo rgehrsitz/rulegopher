@@ -186,3 +186,21 @@ func TestEvaluateFactMatchingMultipleRules(t *testing.T) {
 		t.Fatalf("Events are not ordered by rule priority")
 	}
 }
+
+func TestExecuteEmptyRules(t *testing.T) {
+	// Create a new engine
+	e := NewEngine()
+
+	// Define a fact
+	fact := rules.Fact{
+		"temperature": 35,
+	}
+
+	// Execute rules with the fact
+	events := e.Evaluate(fact)
+
+	// Check that no events were returned
+	if len(events) != 0 {
+		t.Errorf("ExecuteRules returned events when no rules were added: got %v", events)
+	}
+}

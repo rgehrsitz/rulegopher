@@ -111,12 +111,21 @@ func (c *Condition) Evaluate(fact Fact) (bool, []string, []interface{}) {
 			if ok1 && ok2 && strings.Contains(factStr, valueStr) {
 				return true, []string{c.Fact}, []interface{}{factValue}
 			}
+			factSlice, ok3 := factValue.([]string)
+			if ok3 && contains(factSlice, valueStr) {
+				return true, []string{c.Fact}, []interface{}{factValue}
+			}
 		case "notContains":
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := c.Value.(string)
 			if ok1 && ok2 && !strings.Contains(factStr, valueStr) {
 				return true, []string{c.Fact}, []interface{}{factValue}
 			}
+			factSlice, ok3 := factValue.([]string)
+			if ok3 && !contains(factSlice, valueStr) {
+				return true, []string{c.Fact}, []interface{}{factValue}
+			}
+
 		}
 		return false, nil, nil
 	}
@@ -163,4 +172,13 @@ func convertToFloat64(value interface{}) (float64, bool) {
 		}
 	}
 	return 0, false
+}
+
+func contains(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }

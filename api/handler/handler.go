@@ -25,9 +25,21 @@ func (h *Handler) AddRule(w http.ResponseWriter, r *http.Request) {
 	var rule rules.Rule
 	err := json.NewDecoder(r.Body).Decode(&rule)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
+
+	// Set a default priority if the Priority field is missing
+	if rule.Priority == 0 {
+		rule.Priority = 99
+	}
+
+	// Check if the other required fields are missing
+	if rule.Name == "" || (len(rule.Conditions.All) == 0 && len(rule.Conditions.Any) == 0) || rule.Event.EventType == "" {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
 	h.engine.AddRule(rule)
 	w.WriteHeader(http.StatusCreated)
 }
@@ -45,8 +57,8 @@ func (h *Handler) RemoveRule(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) EvaluateFact(w http.ResponseWriter, r *http.Request) {
 	var fact rules.Fact
 	err := json.NewDecoder(r.Body).Decode(&fact)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err != nil || len(fact) == 0 {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 	events := h.factHandler.HandleFact(fact)
