@@ -19,11 +19,15 @@ func main() {
 	port := flag.String("port", "8080", "port to listen on")
 	logging := flag.Bool("logging", false, "enable or disable logging")
 	rulesFile := flag.String("rules", "", "JSON file containing the rules")
+	reportFacts := flag.Bool("reportFacts", false, "whether to report the facts that caused the event to trigger")
+	reportRuleName := flag.Bool("reportRuleName", true, "whether to report the name of the rule that was triggered")
 
 	flag.Parse()
 
 	// Create the rules engine and fact handler
 	rulesEngine := engine.NewEngine()
+	rulesEngine.ReportFacts = *reportFacts
+	rulesEngine.ReportRuleName = *reportRuleName
 	factHandler := facts.NewFactHandler(rulesEngine)
 
 	// If a rules file is provided, load the rules from the file

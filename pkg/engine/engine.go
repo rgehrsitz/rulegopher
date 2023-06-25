@@ -9,15 +9,19 @@ import (
 )
 
 type Engine struct {
-	Rules     []rules.Rule
-	RuleIndex map[string][]*rules.Rule
-	mu        sync.RWMutex
+	Rules          []rules.Rule
+	RuleIndex      map[string][]*rules.Rule
+	mu             sync.RWMutex
+	ReportFacts    bool
+	ReportRuleName bool
 }
 
 func NewEngine() *Engine {
 	return &Engine{
-		Rules:     make([]rules.Rule, 0),
-		RuleIndex: make(map[string][]*rules.Rule),
+		Rules:          make([]rules.Rule, 0),
+		RuleIndex:      make(map[string][]*rules.Rule),
+		ReportFacts:    false,
+		ReportRuleName: false,
 	}
 }
 
@@ -109,7 +113,10 @@ func (e *Engine) Evaluate(fact rules.Fact) []rules.Event {
 				if _, evaluated := evaluatedRules[rule]; !evaluated {
 					// Create a copy of the rule before evaluating it
 					ruleCopy := *rule
-					if ruleCopy.Evaluate(fact, true) {
+					if ruleCopy.Evaluate(fact, e.ReportFacts) {
+						if e.ReportRuleName { // Check if the ReportRuleName option is enabled
+							ruleCopy.Event.RuleName = ruleCopy.Name // Set the RuleName field here
+						}
 						events = append(events, ruleCopy.Event)
 					}
 					evaluatedRules[rule] = true

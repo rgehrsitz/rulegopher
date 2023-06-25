@@ -18,6 +18,7 @@ type Event struct {
 	CustomProperty interface{}   `json:"customProperty"`
 	Facts          []string      `json:"facts,omitempty"`
 	Values         []interface{} `json:"values,omitempty"`
+	RuleName       string        `json:"ruleName,omitempty"`
 }
 
 type Conditions struct {
