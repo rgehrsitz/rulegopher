@@ -103,4 +103,4 @@ This project was heavily inspired by:
 Thank you to both of those authors for their excellent projects that I learned from.
 
 ## License
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](https://github.com/rgehrsitz/rulegopher/blob/main/LICENSE)
