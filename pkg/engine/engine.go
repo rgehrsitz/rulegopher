@@ -36,12 +36,12 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 	}
 
 	// Insert the rule in the correct position to maintain sorted order
-	index := sort.Search(len(e.Rules), func(i int) bool {
+	insertionIndex := sort.Search(len(e.Rules), func(i int) bool {
 		return e.Rules[i].Priority > rule.Priority
 	})
 	e.Rules = append(e.Rules, rules.Rule{})
-	copy(e.Rules[index+1:], e.Rules[index:])
-	e.Rules[index] = rule
+	copy(e.Rules[insertionIndex+1:], e.Rules[insertionIndex:])
+	e.Rules[insertionIndex] = rule
 
 	e.addToIndex(&rule)
 	return nil
@@ -73,9 +73,9 @@ func (e *Engine) RemoveRule(ruleName string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	for i, rule := range e.Rules {
+	for ruleIndex, rule := range e.Rules {
 		if rule.Name == ruleName {
-			e.Rules = append(e.Rules[:i], e.Rules[i+1:]...)
+			e.Rules = append(e.Rules[:ruleIndex], e.Rules[ruleIndex+1:]...)
 			e.removeFromIndex(&rule)
 			return nil
 		}
@@ -85,10 +85,10 @@ func (e *Engine) RemoveRule(ruleName string) error {
 }
 
 func (e *Engine) removeFromIndex(rule *rules.Rule) {
-	for fact, rules := range e.RuleIndex {
-		for i, r := range rules {
+	for factName, matchingRules := range e.RuleIndex {
+		for ruleIndex, r := range matchingRules {
 			if r == rule {
-				e.RuleIndex[fact] = append(rules[:i], rules[i+1:]...)
+				e.RuleIndex[factName] = append(matchingRules[:ruleIndex], matchingRules[ruleIndex+1:]...)
 				break
 			}
 		}
@@ -127,11 +127,11 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	for i, existingRule := range e.Rules {
+	for ruleIndex, existingRule := range e.Rules {
 		if existingRule.Name == ruleName {
 			e.removeFromIndex(&existingRule)
 			oldPriority := existingRule.Priority
-			e.Rules[i] = newRule
+			e.Rules[ruleIndex] = newRule
 			e.addToIndex(&newRule)
 			// Re-sort the rules after updating only if the priority has changed
 			if oldPriority != newRule.Priority {
