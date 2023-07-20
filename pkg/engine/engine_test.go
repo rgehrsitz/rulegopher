@@ -627,3 +627,30 @@ func TestAddRuleWithInvalidOperator(t *testing.T) {
 		t.Fatalf("Expected error when adding rule with invalid operator, got nil")
 	}
 }
+
+func TestUpdateRuleWithInvalidName(t *testing.T) {
+	engine := NewEngine()
+
+	rule := rules.Rule{
+		Name: "TestRule",
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType:      "alert",
+			CustomProperty: "AC turned on",
+		},
+	}
+
+	// Try to update a rule that doesn't exist
+	err := engine.UpdateRule("NonExistentRule", rule)
+	if err == nil {
+		t.Fatalf("Expected error when updating non-existent rule, got nil")
+	}
+}
