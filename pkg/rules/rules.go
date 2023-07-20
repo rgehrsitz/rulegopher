@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -42,25 +43,25 @@ type Condition struct {
 // Fact represents a fact that is evaluated against the conditions of a rule.
 type Fact map[string]interface{}
 
+const epsilon = 1e-9
+
+func almostEqual(a, b float64) bool {
+	return math.Abs(a-b) <= epsilon
+}
+
 // Evaluate evaluates the conditions of the rule against the given fact.
 func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) bool {
-	for _, condition := range r.Conditions.All {
-		satisfied, facts, values := condition.Evaluate(fact)
-		if !satisfied {
-			return false
-		}
-		if satisfied && includeTriggeringFact {
-			r.Event.Facts = append(r.Event.Facts, facts...)
-			r.Event.Values = append(r.Event.Values, values...)
-		}
+	satisfied, facts, values := evaluateConditions(r.Conditions.All, fact)
+	if !satisfied {
+		return false
+	}
+	if satisfied && includeTriggeringFact {
+		r.Event.Facts = append(r.Event.Facts, facts...)
+		r.Event.Values = append(r.Event.Values, values...)
 	}
 
-	if len(r.Conditions.Any) == 0 {
-		return true
-	}
-
-	for _, condition := range r.Conditions.Any {
-		satisfied, facts, values := condition.Evaluate(fact)
+	if len(r.Conditions.Any) > 0 {
+		satisfied, facts, values = evaluateConditions(r.Conditions.Any, fact)
 		if satisfied {
 			if includeTriggeringFact {
 				r.Event.Facts = append(r.Event.Facts, facts...)
@@ -70,7 +71,8 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) bool {
 		}
 	}
 
-	return false
+	// If there are no "Any" conditions, and all "All" conditions are satisfied, return true
+	return len(r.Conditions.Any) == 0
 }
 
 // Evaluate evaluates the condition against the given fact.
@@ -98,19 +100,19 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}) 
 			}
 			switch condition.Operator {
 			case "greaterThan":
-				if factFloat > valueFloat {
+				if factFloat > valueFloat+epsilon {
 					return true, []string{condition.Fact}, []interface{}{factValue}
 				}
 			case "greaterThanOrEqual":
-				if factFloat >= valueFloat {
+				if almostEqual(factFloat, valueFloat) || factFloat > valueFloat {
 					return true, []string{condition.Fact}, []interface{}{factValue}
 				}
 			case "lessThan":
-				if factFloat < valueFloat {
+				if factFloat < valueFloat-epsilon {
 					return true, []string{condition.Fact}, []interface{}{factValue}
 				}
 			case "lessThanOrEqual":
-				if factFloat <= valueFloat {
+				if almostEqual(factFloat, valueFloat) || factFloat < valueFloat {
 					return true, []string{condition.Fact}, []interface{}{factValue}
 				}
 			}
@@ -134,38 +136,11 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}) 
 			if ok3 && !contains(factSlice, valueStr) {
 				return true, []string{condition.Fact}, []interface{}{factValue}
 			}
-
 		}
 		return false, nil, nil
 	}
 
-	var facts []string
-	var values []interface{}
-
-	for _, subCondition := range condition.All {
-		satisfied, fact, value := subCondition.Evaluate(fact)
-		if !satisfied {
-			return false, nil, nil
-		}
-		if satisfied {
-			facts = append(facts, fact...)
-			values = append(values, value...)
-		}
-	}
-	if len(condition.Any) > 0 {
-		for _, subCondition := range condition.Any {
-			satisfied, fact, value := subCondition.Evaluate(fact)
-			if satisfied {
-				facts = append(facts, fact...)
-				values = append(values, value...)
-			}
-		}
-		if len(facts) == 0 {
-			return false, nil, nil
-		}
-	}
-
-	return true, facts, values
+	return evaluateConditions(condition.All, fact)
 }
 
 // convertToFloat64 attempts to convert the given value to a float64.
@@ -193,4 +168,23 @@ func contains(slice []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []interface{}) {
+	var facts []string
+	var values []interface{}
+
+	for _, condition := range conditions {
+		satisfied, fact, value := condition.Evaluate(fact)
+		if satisfied {
+			facts = append(facts, fact...)
+			values = append(values, value...)
+		}
+	}
+
+	if len(facts) == 0 {
+		return false, nil, nil
+	}
+
+	return true, facts, values
 }
