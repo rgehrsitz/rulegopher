@@ -49,6 +49,34 @@ func almostEqual(a, b float64) bool {
 	return math.Abs(a-b) <= epsilon
 }
 
+// Validate validates the conditions of the rule.
+func (r *Rule) Validate() error {
+	validOperators := map[string]bool{
+		"equal":              true,
+		"notEqual":           true,
+		"greaterThan":        true,
+		"greaterThanOrEqual": true,
+		"lessThan":           true,
+		"lessThanOrEqual":    true,
+		"contains":           true,
+		"notContains":        true,
+	}
+
+	for _, condition := range r.Conditions.All {
+		if _, ok := validOperators[condition.Operator]; !ok {
+			return fmt.Errorf("invalid operator: %s", condition.Operator)
+		}
+	}
+
+	for _, condition := range r.Conditions.Any {
+		if _, ok := validOperators[condition.Operator]; !ok {
+			return fmt.Errorf("invalid operator: %s", condition.Operator)
+		}
+	}
+
+	return nil
+}
+
 func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 	satisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
 	if err != nil {

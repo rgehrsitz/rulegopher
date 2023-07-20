@@ -26,8 +26,19 @@ func NewEngine() *Engine {
 }
 
 func (e *Engine) AddRule(rule rules.Rule) error {
+
+	// Validate the rule before adding it
+	if err := rule.Validate(); err != nil {
+		return err
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
+
+	// Check if the Conditions field of the rule is nil
+	if rule.Conditions.All == nil && rule.Conditions.Any == nil {
+		return errors.New("rule conditions cannot be nil")
+	}
 
 	for _, existingRule := range e.Rules {
 		if existingRule.Name == rule.Name {
