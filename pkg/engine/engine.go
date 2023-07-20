@@ -95,7 +95,7 @@ func (e *Engine) removeFromIndex(rule *rules.Rule) {
 	}
 }
 
-func (e *Engine) Evaluate(inputFact rules.Fact) []rules.Event {
+func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -108,7 +108,11 @@ func (e *Engine) Evaluate(inputFact rules.Fact) []rules.Event {
 				if _, alreadyEvaluated := evaluatedRules[rule]; !alreadyEvaluated {
 					// Create a copy of the rule before evaluating it
 					ruleCopy := *rule
-					if ruleCopy.Evaluate(inputFact, e.ReportFacts) {
+					satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts)
+					if err != nil {
+						return nil, err
+					}
+					if satisfied {
 						if e.ReportRuleName { // Check if the ReportRuleName option is enabled
 							ruleCopy.Event.RuleName = ruleCopy.Name // Set the RuleName field here
 						}
@@ -120,7 +124,7 @@ func (e *Engine) Evaluate(inputFact rules.Fact) []rules.Event {
 		}
 	}
 
-	return generatedEvents
+	return generatedEvents, nil
 }
 
 func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {

@@ -39,7 +39,10 @@ func TestHandleFact(t *testing.T) {
 	}
 
 	// Handle the fact
-	events := fh.HandleFact(fact)
+	events, err := fh.HandleFact(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
 
 	// Check that the correct event was generated
 	if len(events) != 1 || events[0].EventType != "alert" {
@@ -62,7 +65,10 @@ func TestFactHandlerHandleFactWithNoSatisfyingRules(t *testing.T) {
 	}
 
 	// Handle the fact
-	events := fh.HandleFact(fact)
+	events, err := fh.HandleFact(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
 
 	// Check that no events were returned
 	if len(events) != 0 {
@@ -122,7 +128,10 @@ func TestFactHandlerHandleFactWithMultipleSatisfyingRules(t *testing.T) {
 	}
 
 	// Handle the fact
-	events := fh.HandleFact(fact)
+	events, err := fh.HandleFact(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
 
 	// Check that two events were returned
 	if len(events) != 2 {

@@ -121,7 +121,10 @@ func TestEvaluateNonMatchingFact(t *testing.T) {
 	}
 
 	// Evaluate the fact
-	events := engine.Evaluate(fact)
+	events, err := engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
 
 	// Check that the list of events is empty
 	if len(events) != 0 {
@@ -174,7 +177,10 @@ func TestEvaluateFactMatchingMultipleRules(t *testing.T) {
 	}
 
 	// Evaluate the fact
-	events := engine.Evaluate(fact)
+	events, err := engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
 
 	// Check that the list of events contains both events
 	if len(events) != 2 {
@@ -197,7 +203,10 @@ func TestExecuteEmptyRules(t *testing.T) {
 	}
 
 	// Execute rules with the fact
-	events := e.Evaluate(fact)
+	events, err := e.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
 
 	// Check that no events were returned
 	if len(events) != 0 {

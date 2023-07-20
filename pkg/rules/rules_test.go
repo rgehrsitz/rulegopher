@@ -23,13 +23,19 @@ func TestConditionEvaluate(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be true
-	satisfied, _, _ := condition.Evaluate(factTrue)
+	satisfied, _, _, err := condition.Evaluate(factTrue)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
 	if !satisfied {
 		t.Errorf("Expected condition to be true, but it was false")
 	}
 
 	// Test the condition with the fact where it should be false
-	satisfied, _, _ = condition.Evaluate(factFalse)
+	satisfied, _, _, err = condition.Evaluate(factFalse)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
 	if satisfied {
 		t.Errorf("Expected condition to be false, but it was true")
 	}
@@ -78,7 +84,10 @@ func TestConditionEvaluate2(t *testing.T) {
 
 	// Test each condition with the fact where it should be true
 	for _, condition := range conditions {
-		satisfied, _, _ := condition.Evaluate(factTrue)
+		satisfied, _, _, err := condition.Evaluate(factTrue)
+		if err != nil {
+			t.Fatalf("Error evaluating condition: %v", err)
+		}
 		if !satisfied {
 			t.Errorf("Expected condition to be true, but it was false")
 		}
@@ -86,7 +95,10 @@ func TestConditionEvaluate2(t *testing.T) {
 
 	// Test each condition with the fact where it should be false
 	for _, condition := range conditions {
-		satisfied, _, _ := condition.Evaluate(factFalse)
+		satisfied, _, _, err := condition.Evaluate(factFalse)
+		if err != nil {
+			t.Fatalf("Error evaluating condition: %v", err)
+		}
 		if satisfied {
 			t.Errorf("Expected condition to be false, but it was true")
 		}
@@ -147,12 +159,21 @@ func TestRuleEvaluate3(t *testing.T) {
 	}
 
 	// Test the rule with the fact where it should be satisfied
-	if !rule.Evaluate(factTrue, true) {
+	satisfied, err := rule.Evaluate(factTrue, true)
+	if err != nil {
+		t.Fatalf("Error evaluating rule: %v", err)
+	}
+	if !satisfied {
 		t.Errorf("Expected rule to be satisfied, but it was not")
 	}
 
 	// Test the rule with the fact where it should not be satisfied
-	if rule.Evaluate(factFalse, true) {
+
+	satisfied, err = rule.Evaluate(factFalse, true)
+	if err != nil {
+		t.Fatalf("Error evaluating rule: %v", err)
+	}
+	if satisfied {
 		t.Errorf("Expected rule to not be satisfied, but it was")
 	}
 }
@@ -215,12 +236,21 @@ func TestRuleEvaluateComplex(t *testing.T) {
 	}
 
 	// Test the rule with the fact where it should be satisfied
-	if !rule.Evaluate(factTrue, true) {
+	satisfied, err := rule.Evaluate(factTrue, true)
+	if err != nil {
+		t.Fatalf("Error evaluating rule: %v", err)
+	}
+	if !satisfied {
 		t.Errorf("Expected rule to be satisfied, but it was not")
 	}
 
 	// Test the rule with the fact where it should not be satisfied
-	if rule.Evaluate(factFalse, true) {
+
+	satisfied, err = rule.Evaluate(factFalse, true)
+	if err != nil {
+		t.Fatalf("Error evaluating rule: %v", err)
+	}
+	if satisfied {
 		t.Errorf("Expected rule to not be satisfied, but it was")
 	}
 }
@@ -280,7 +310,10 @@ func TestConditionEvaluateWithDifferentOperators(t *testing.T) {
 
 	// Test each condition with the fact
 	for _, condition := range conditions {
-		satisfied, _, _ := condition.Evaluate(fact)
+		satisfied, _, _, err := condition.Evaluate(fact)
+		if err != nil {
+			t.Fatalf("Error evaluating condition: %v", err)
+		}
 		if !satisfied {
 			t.Errorf("Expected condition to be true, but it was false")
 		}
@@ -322,7 +355,10 @@ func TestConditionEvaluateWithDifferentValueTypes(t *testing.T) {
 
 	// Test each condition with the fact
 	for _, condition := range conditions {
-		satisfied, _, _ := condition.Evaluate(fact)
+		satisfied, _, _, err := condition.Evaluate(fact)
+		if err != nil {
+			t.Fatalf("Error evaluating condition: %v", err)
+		}
 		if !satisfied {
 			t.Errorf("Expected condition to be true, but it was false")
 		}
@@ -345,7 +381,10 @@ func TestConditionEvaluateWithMissingFact(t *testing.T) {
 	}
 
 	// Test the condition with the fact
-	satisfied, _, _ := condition.Evaluate(fact)
+	satisfied, _, _, err := condition.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
 	if satisfied {
 		t.Errorf("Expected condition to be false, but it was true")
 	}

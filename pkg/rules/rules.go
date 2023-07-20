@@ -49,11 +49,13 @@ func almostEqual(a, b float64) bool {
 	return math.Abs(a-b) <= epsilon
 }
 
-// Evaluate evaluates the conditions of the rule against the given fact.
-func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) bool {
-	satisfied, facts, values := evaluateConditions(r.Conditions.All, fact)
+func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
+	satisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
+	if err != nil {
+		return false, err
+	}
 	if !satisfied {
-		return false
+		return false, nil
 	}
 	if satisfied && includeTriggeringFact {
 		r.Event.Facts = append(r.Event.Facts, facts...)
@@ -61,83 +63,103 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) bool {
 	}
 
 	if len(r.Conditions.Any) > 0 {
-		satisfied, facts, values = evaluateConditions(r.Conditions.Any, fact)
+		satisfied, facts, values, err = evaluateConditions(r.Conditions.Any, fact)
+		if err != nil {
+			return false, err
+		}
 		if satisfied {
 			if includeTriggeringFact {
 				r.Event.Facts = append(r.Event.Facts, facts...)
 				r.Event.Values = append(r.Event.Values, values...)
 			}
-			return true
+			return true, nil
 		}
 	}
 
-	// If there are no "Any" conditions, and all "All" conditions are satisfied, return true
-	return len(r.Conditions.Any) == 0
+	return len(r.Conditions.Any) == 0, nil
 }
 
 // Evaluate evaluates the condition against the given fact.
-func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}) {
+func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, error) {
+	validOperators := map[string]bool{
+		"equal":              true,
+		"notEqual":           true,
+		"greaterThan":        true,
+		"greaterThanOrEqual": true,
+		"lessThan":           true,
+		"lessThanOrEqual":    true,
+		"contains":           true,
+		"notContains":        true,
+	}
+
+	if _, ok := validOperators[condition.Operator]; !ok {
+		return false, nil, nil, fmt.Errorf("invalid operator: %s", condition.Operator)
+	}
+
 	if condition.Fact != "" && condition.Operator != "" {
 		factValue, ok := fact[condition.Fact]
 		if !ok {
-			return false, nil, nil
+			return false, nil, nil, nil
 		}
 
 		switch condition.Operator {
 		case "equal":
 			if reflect.DeepEqual(factValue, condition.Value) {
-				return true, []string{condition.Fact}, []interface{}{factValue}
+				return true, []string{condition.Fact}, []interface{}{factValue}, nil
 			}
 		case "notEqual":
 			if !reflect.DeepEqual(factValue, condition.Value) {
-				return true, []string{condition.Fact}, []interface{}{factValue}
+				return true, []string{condition.Fact}, []interface{}{factValue}, nil
 			}
 		case "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual":
-			factFloat, ok1, err1 := convertToFloat64(factValue)
-			valueFloat, ok2, err2 := convertToFloat64(condition.Value)
-			if err1 != nil || err2 != nil || !ok1 || !ok2 {
-				return false, nil, nil
+			factFloat, _, err1 := convertToFloat64(factValue)
+			valueFloat, _, err2 := convertToFloat64(condition.Value)
+			if err1 != nil {
+				return false, nil, nil, fmt.Errorf("error converting fact value to float64: %w", err1)
+			}
+			if err2 != nil {
+				return false, nil, nil, fmt.Errorf("error converting condition value to float64: %w", err2)
 			}
 			switch condition.Operator {
 			case "greaterThan":
 				if factFloat > valueFloat+epsilon {
-					return true, []string{condition.Fact}, []interface{}{factValue}
+					return true, []string{condition.Fact}, []interface{}{factValue}, nil
 				}
 			case "greaterThanOrEqual":
 				if almostEqual(factFloat, valueFloat) || factFloat > valueFloat {
-					return true, []string{condition.Fact}, []interface{}{factValue}
+					return true, []string{condition.Fact}, []interface{}{factValue}, nil
 				}
 			case "lessThan":
 				if factFloat < valueFloat-epsilon {
-					return true, []string{condition.Fact}, []interface{}{factValue}
+					return true, []string{condition.Fact}, []interface{}{factValue}, nil
 				}
 			case "lessThanOrEqual":
 				if almostEqual(factFloat, valueFloat) || factFloat < valueFloat {
-					return true, []string{condition.Fact}, []interface{}{factValue}
+					return true, []string{condition.Fact}, []interface{}{factValue}, nil
 				}
 			}
 		case "contains":
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := condition.Value.(string)
 			if ok1 && ok2 && strings.Contains(factStr, valueStr) {
-				return true, []string{condition.Fact}, []interface{}{factValue}
+				return true, []string{condition.Fact}, []interface{}{factValue}, nil
 			}
 			factSlice, ok3 := factValue.([]string)
 			if ok3 && contains(factSlice, valueStr) {
-				return true, []string{condition.Fact}, []interface{}{factValue}
+				return true, []string{condition.Fact}, []interface{}{factValue}, nil
 			}
 		case "notContains":
 			factStr, ok1 := factValue.(string)
 			valueStr, ok2 := condition.Value.(string)
 			if ok1 && ok2 && !strings.Contains(factStr, valueStr) {
-				return true, []string{condition.Fact}, []interface{}{factValue}
+				return true, []string{condition.Fact}, []interface{}{factValue}, nil
 			}
 			factSlice, ok3 := factValue.([]string)
 			if ok3 && !contains(factSlice, valueStr) {
-				return true, []string{condition.Fact}, []interface{}{factValue}
+				return true, []string{condition.Fact}, []interface{}{factValue}, nil
 			}
 		}
-		return false, nil, nil
+		return false, nil, nil, nil
 	}
 
 	return evaluateConditions(condition.All, fact)
@@ -170,12 +192,15 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
-func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []interface{}) {
+func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []interface{}, error) {
 	var facts []string
 	var values []interface{}
 
 	for _, condition := range conditions {
-		satisfied, fact, value := condition.Evaluate(fact)
+		satisfied, fact, value, err := condition.Evaluate(fact)
+		if err != nil {
+			return false, nil, nil, err
+		}
 		if satisfied {
 			facts = append(facts, fact...)
 			values = append(values, value...)
@@ -183,8 +208,8 @@ func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []in
 	}
 
 	if len(facts) == 0 {
-		return false, nil, nil
+		return false, nil, nil, nil
 	}
 
-	return true, facts, values
+	return true, facts, values, nil
 }

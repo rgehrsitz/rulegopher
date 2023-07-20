@@ -18,6 +18,6 @@ func NewFactHandler(engine *engine.Engine) *FactHandler {
 }
 
 // HandleFact evaluates the given fact using the FactHandler's engine.
-func (factHandler *FactHandler) HandleFact(fact rules.Fact) []rules.Event {
+func (factHandler *FactHandler) HandleFact(fact rules.Fact) ([]rules.Event, error) {
 	return factHandler.engine.Evaluate(fact)
 }

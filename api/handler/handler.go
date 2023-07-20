@@ -61,7 +61,11 @@ func (h *Handler) EvaluateFact(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	events := h.factHandler.HandleFact(fact)
+	events, err := h.factHandler.HandleFact(fact)
+	if err != nil {
+		http.Error(w, "Error evaluating fact", http.StatusInternalServerError)
+		return
+	}
 	json.NewEncoder(w).Encode(events)
 }
 
