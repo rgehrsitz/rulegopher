@@ -389,3 +389,35 @@ func TestConditionEvaluateWithMissingFact(t *testing.T) {
 		t.Errorf("Expected condition to be false, but it was true")
 	}
 }
+
+func TestEvaluateWithInvalidFact(t *testing.T) {
+	// Define a rule
+	rule := Rule{
+		Name:     "TestRule",
+		Priority: 1,
+		Conditions: Conditions{
+			All: []Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+			},
+		},
+		Event: Event{
+			EventType:      "alert",
+			CustomProperty: "AC turned on",
+		},
+	}
+
+	// Define a fact with invalid data type for the condition
+	fact := Fact{
+		"temperature": "forty", // string instead of a number
+	}
+
+	// Test the rule with the fact
+	_, err := rule.Evaluate(fact, true)
+	if err == nil {
+		t.Errorf("Expected an error due to invalid fact data type, but got none")
+	}
+}

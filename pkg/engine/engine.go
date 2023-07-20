@@ -142,6 +142,11 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
+	// Validate the new rule before updating
+	if err := newRule.Validate(); err != nil {
+		return err
+	}
+
 	for ruleIndex, existingRule := range e.Rules {
 		if existingRule.Name == ruleName {
 			e.removeFromIndex(&existingRule)
