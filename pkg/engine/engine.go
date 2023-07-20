@@ -27,6 +27,11 @@ func NewEngine() *Engine {
 
 func (e *Engine) AddRule(rule rules.Rule) error {
 
+	// Check if the rule name is empty
+	if rule.Name == "" {
+		return errors.New("rule name cannot be empty")
+	}
+
 	// Validate the rule before adding it
 	if err := rule.Validate(); err != nil {
 		return err

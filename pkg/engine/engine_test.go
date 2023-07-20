@@ -654,3 +654,39 @@ func TestUpdateRuleWithInvalidName(t *testing.T) {
 		t.Fatalf("Expected error when updating non-existent rule, got nil")
 	}
 }
+
+func TestRemoveRuleWithInvalidName(t *testing.T) {
+	engine := NewEngine()
+
+	// Try to remove a rule that doesn't exist
+	err := engine.RemoveRule("NonExistentRule")
+	if err == nil {
+		t.Fatalf("Expected error when removing non-existent rule, got nil")
+	}
+}
+
+func TestAddRuleWithEmptyName(t *testing.T) {
+	engine := NewEngine()
+
+	rule := rules.Rule{
+		Name:     "",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "alert",
+		},
+	}
+
+	err := engine.AddRule(rule)
+	if err == nil {
+		t.Errorf("Expected error when adding rule with empty name, but got none")
+	}
+}
