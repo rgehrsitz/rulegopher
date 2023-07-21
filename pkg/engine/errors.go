@@ -1,5 +1,9 @@
 package engine
 
+// The below code defines custom error types for different rule-related scenarios in Go.
+// @property {string} RuleName - The RuleName property is a string that represents the name of a rule.
+// It is used in the error messages to provide more information about the specific rule that caused the
+// error.
 type RuleAlreadyExistsError struct {
 	RuleName string
 }

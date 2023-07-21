@@ -15,7 +15,9 @@ import (
 )
 
 func main() {
-	// Parse the command line arguments for the port and rules file
+
+	// The code block is using the `flag` package in Go to define and parse command-line
+	// flags.
 	port := flag.String("port", "8080", "port to listen on")
 	logging := flag.Bool("logging", false, "enable or disable logging")
 	rulesFile := flag.String("rules", "", "JSON file containing the rules")
@@ -24,13 +26,14 @@ func main() {
 
 	flag.Parse()
 
-	// Create the rules engine and fact handler
+	// This block of code is creating a new instance of the rules engine and fact handler.
 	rulesEngine := engine.NewEngine()
 	rulesEngine.ReportFacts = *reportFacts
 	rulesEngine.ReportRuleName = *reportRuleName
 	factHandler := facts.NewFactHandler(rulesEngine)
 
-	// If a rules file is provided, load the rules from the file
+	// This block of code is responsible for reading and decoding the rules from a JSON file, and then
+	// adding those rules to the rules engine.
 	if *rulesFile != "" {
 		file, err := os.Open(*rulesFile)
 		if err != nil {
@@ -53,10 +56,14 @@ func main() {
 		}
 	}
 
-	// Create the API handler
+	// The line `apiHandler := handler.NewHandler(rulesEngine, factHandler)` is creating a new instance of
+	// the `Handler` struct from the `handler` package. It is passing the `rulesEngine` and `factHandler`
+	// as arguments to the `NewHandler` function, which initializes the `Handler` struct with these
+	// dependencies. This `apiHandler` instance will be used to handle incoming API requests.
 	apiHandler := handler.NewHandler(rulesEngine, factHandler)
 
-	// Set up the routes
+	// This block of code is responsible for setting up the HTTP handlers for different API endpoints based
+	// on the value of the `logging` flag.
 	if *logging {
 		http.Handle("/addRule", middleware.LoggingMiddleware(http.HandlerFunc(apiHandler.AddRule)))
 		http.Handle("/removeRule", middleware.LoggingMiddleware(http.HandlerFunc(apiHandler.RemoveRule)))
@@ -67,7 +74,8 @@ func main() {
 		http.Handle("/evaluateFact", http.HandlerFunc(apiHandler.EvaluateFact))
 	}
 
-	// Start the server
+	// This code block is responsible for starting the HTTP server and listening for incoming requests on
+	// the specified port.
 	fmt.Printf("Starting server on port %s\n", *port)
 	http.ListenAndServe(":"+*port, nil)
 	fmt.Println("Server started")

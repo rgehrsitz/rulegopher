@@ -8,7 +8,15 @@ import (
 	"strings"
 )
 
-// Rule represents a single rule with its conditions and event.
+// The "Rule" type represents a rule with a name, priority, conditions, and an event.
+// @property {string} Name - The Name property is a string that represents the name of the rule.
+// @property {int} Priority - Priority is an integer value that determines the order in which rules are
+// evaluated. Rules with higher priority values are evaluated before rules with lower priority values.
+// @property {Conditions} Conditions - Conditions is a struct that represents the conditions that need
+// to be met for the rule to be triggered. It contains properties such as "Field" (the field to be
+// checked), "Operator" (the comparison operator), and "Value" (the value to compare against).
+// @property {Event} Event - The `Event` property represents an event that triggers the rule. It could
+// be any kind of event, such as a user action, a system event, or a time-based event.
 type Rule struct {
 	Name       string     `json:"name"`
 	Priority   int        `json:"priority"`
@@ -16,7 +24,19 @@ type Rule struct {
 	Event      Event      `json:"event"`
 }
 
-// Event represents the event that is generated when a rule is satisfied.
+// The above code defines a struct type named "Event" with various fields and JSON tags.
+// @property {string} EventType - The EventType property is a string that represents the type of event.
+// It can be used to categorize different types of events.
+// @property CustomProperty - The `CustomProperty` field is of type `interface{}`. This means it can
+// hold values of any type. It is used to store custom properties or additional information related to
+// the event.
+// @property {[]string} Facts - Facts is a slice of strings that represents additional information or
+// data related to the event. It is optional and can be omitted if not needed.
+// @property {[]interface{}} Values - The `Values` property is an array of interface{} type, which
+// means it can hold values of any type. It is marked as `omitempty`, which means it will be omitted
+// from the JSON output if it is empty.
+// @property {string} RuleName - The `RuleName` property is a string that represents the name of the
+// rule associated with the event. It is an optional property and may be omitted if not applicable.
 type Event struct {
 	EventType      string        `json:"eventType"`
 	CustomProperty interface{}   `json:"customProperty"`
@@ -25,13 +45,34 @@ type Event struct {
 	RuleName       string        `json:"ruleName,omitempty"`
 }
 
-// Conditions represents the conditions of a rule.
+// The Conditions type is a struct that contains two arrays of Condition structs, one for all
+// conditions and one for any conditions.
+// @property {[]Condition} All - The "All" property is an array of conditions. It represents a set of
+// conditions that must all be true for a certain condition to be considered true. In other words, all
+// conditions in the "All" array must evaluate to true for the overall condition to be true.
+// @property {[]Condition} Any - The `Any` property is an array of `Condition` objects. It represents a
+// list of conditions where at least one of them must be true for the overall condition to be true.
 type Conditions struct {
 	All []Condition `json:"all"`
 	Any []Condition `json:"any"`
 }
 
-// Condition represents a single condition of a rule.
+// The type represents a condition with a fact, operator, value, and optional nested conditions.
+// @property {string} Fact - The "Fact" property represents the specific fact or attribute that the
+// condition is checking. It is a string that describes the fact being evaluated.
+// @property {string} Operator - The "Operator" property in the "Condition" struct represents the
+// comparison operator to be used in the condition. It specifies how the "Fact" property should be
+// compared to the "Value" property. Examples of operators include "=", ">", "<", ">=", "<=", "!=",
+// "in", "not
+// @property Value - The `Value` property is used to store the value that will be compared with the
+// fact using the specified operator. The type of the value can be any valid Go data type, such as
+// string, number, boolean, or even a custom struct.
+// @property {[]Condition} All - The `All` property is an array of `Condition` objects. It represents a
+// logical AND condition, where all the conditions in the array must be true for the overall condition
+// to be true.
+// @property {[]Condition} Any - The `Any` property is an array of `Condition` objects. It represents a
+// logical OR condition, where at least one of the conditions in the array must be true for the overall
+// condition to be true.
 type Condition struct {
 	Fact     string      `json:"fact,omitempty"`
 	Operator string      `json:"operator,omitempty"`
@@ -40,16 +81,23 @@ type Condition struct {
 	Any      []Condition `json:"any,omitempty"`
 }
 
-// Fact represents a fact that is evaluated against the conditions of a rule.
+// The code defines a type called "Fact" which is a map with string keys and interface{} values.
 type Fact map[string]interface{}
 
+// The line `const epsilon = 1e-9` is declaring a constant named `epsilon` with a value of `1e-9`. This
+// constant is used as a small value to determine if two floating-point numbers are almost equal. It is
+// used in the `almostEqual` function to check if the absolute difference between two numbers is less
+// than or equal to `epsilon`.
 const epsilon = 1e-9
 
+// The function "almostEqual" checks if two floating-point numbers are almost equal within a certain
+// epsilon value.
 func almostEqual(a, b float64) bool {
 	return math.Abs(a-b) <= epsilon
 }
 
-// Validate validates the conditions of the rule.
+// The `Validate` function is a method of the `Rule` struct. It is used to validate the operators used
+// in the conditions of the rule.
 func (r *Rule) Validate() error {
 	validOperators := map[string]bool{
 		"equal":              true,
@@ -77,6 +125,8 @@ func (r *Rule) Validate() error {
 	return nil
 }
 
+// The `Evaluate` function is a method of the `Rule` struct. It takes a `fact` of type `Fact` and a
+// boolean `includeTriggeringFact` as parameters.
 func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 	satisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
 	if err != nil {
@@ -111,7 +161,8 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 	return len(r.Conditions.Any) == 0, nil
 }
 
-// Evaluate evaluates the condition against the given fact.
+// The `Evaluate` function is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
+// parameter and evaluates the condition against the given fact.
 func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, error) {
 	validOperators := map[string]bool{
 		"equal":              true,
@@ -197,7 +248,9 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 	return evaluateConditions(condition.All, fact)
 }
 
-// convertToFloat64 attempts to convert the given value to a float64.
+// The function `convertToFloat64` takes in a value of any type and attempts to convert it to a
+// float64, returning the converted value, a boolean indicating success or failure, and an error if
+// applicable.
 func convertToFloat64(value interface{}) (float64, bool, error) {
 	switch value := value.(type) {
 	case int:
@@ -214,7 +267,7 @@ func convertToFloat64(value interface{}) (float64, bool, error) {
 	return 0, false, fmt.Errorf("unsupported type: %T", value)
 }
 
-// contains checks if the given slice contains the given string.
+// The function "contains" checks if a given string is present in a slice of strings.
 func contains(slice []string, str string) bool {
 	for _, s := range slice {
 		if s == str {
@@ -224,6 +277,8 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
+// The function evaluates a list of conditions against a given fact and returns whether any conditions
+// are satisfied, along with the corresponding facts and values.
 func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []interface{}, error) {
 	var facts []string
 	var values []interface{}
