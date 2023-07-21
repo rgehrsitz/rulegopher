@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"sort"
 	"sync"
 
@@ -28,7 +27,7 @@ func NewEngine() *Engine {
 func (e *Engine) AddRule(rule rules.Rule) error {
 	// Check if the rule name is empty
 	if rule.Name == "" {
-		return errors.New("rule name cannot be empty")
+		return &EmptyRuleNameError{}
 	}
 
 	// Validate the rule before adding it
@@ -41,7 +40,7 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 
 	// Check if the Conditions field of the rule is nil
 	if rule.Conditions.All == nil && rule.Conditions.Any == nil {
-		return errors.New("rule conditions cannot be nil")
+		return &NilRuleConditionsError{RuleName: rule.Name}
 	}
 
 	// Check if the rule already exists
@@ -156,7 +155,7 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 
 	// Validate the new rule before updating
 	if err := newRule.Validate(); err != nil {
-		return err
+		return &InvalidRuleError{RuleName: newRule.Name}
 	}
 
 	// Check if the rule exists

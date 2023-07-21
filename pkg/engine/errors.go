@@ -23,3 +23,17 @@ type InvalidRuleError struct {
 func (e *InvalidRuleError) Error() string {
 	return "Invalid rule: " + e.RuleName
 }
+
+type EmptyRuleNameError struct{}
+
+func (e *EmptyRuleNameError) Error() string {
+	return "rule name cannot be empty"
+}
+
+type NilRuleConditionsError struct {
+	RuleName string
+}
+
+func (e *NilRuleConditionsError) Error() string {
+	return "rule conditions cannot be nil for rule: " + e.RuleName
+}
