@@ -2,7 +2,6 @@ package engine
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"sync"
 
@@ -66,15 +65,28 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 
 func (e *Engine) addToIndex(rule *rules.Rule) {
 	for _, condition := range rule.Conditions.All {
-		e.insertRuleIntoIndex(condition.Fact, rule)
+		e.insertRuleIntoIndex(condition.Fact, rule.Name)
 	}
 	for _, condition := range rule.Conditions.Any {
-		e.insertRuleIntoIndex(condition.Fact, rule)
+		e.insertRuleIntoIndex(condition.Fact, rule.Name)
 	}
 }
 
-func (e *Engine) insertRuleIntoIndex(fact string, rule *rules.Rule) {
+func (e *Engine) insertRuleIntoIndex(fact string, ruleName string) {
 	existingRules := e.RuleIndex[fact]
+
+	// Find the rule by its name
+	var rule *rules.Rule
+	for _, r := range e.Rules {
+		if r.Name == ruleName {
+			rule = &r
+			break
+		}
+	}
+	if rule == nil {
+		return
+	}
+
 	// Find the correct position to insert the new rule
 	insertionIndex := sort.Search(len(existingRules), func(i int) bool {
 		return existingRules[i].Priority > rule.Priority
@@ -93,27 +105,23 @@ func (e *Engine) RemoveRule(ruleName string) error {
 	for ruleIndex, rule := range e.Rules {
 		if rule.Name == ruleName {
 			e.Rules = append(e.Rules[:ruleIndex], e.Rules[ruleIndex+1:]...)
-			e.removeFromIndex(&rule)
+			e.removeFromIndex(ruleName)
 			return nil
 		}
 	}
+
 	return errors.New("rule does not exist")
 }
 
-func (e *Engine) removeFromIndex(rule *rules.Rule) {
-	fmt.Printf("RuleIndex before removing rule: %+v\n", e.RuleIndex) // Debug print
-
+func (e *Engine) removeFromIndex(ruleName string) {
 	for factName, matchingRules := range e.RuleIndex {
 		for ruleIndex, r := range matchingRules {
-			if r == rule {
-				updatedMatchingRules := append(matchingRules[:ruleIndex], matchingRules[ruleIndex+1:]...)
-				e.RuleIndex[factName] = updatedMatchingRules
+			if r.Name == ruleName {
+				e.RuleIndex[factName] = append(matchingRules[:ruleIndex], matchingRules[ruleIndex+1:]...)
 				break
 			}
 		}
 	}
-
-	fmt.Printf("RuleIndex after removing rule: %+v\n", e.RuleIndex) // Debug print
 }
 
 func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
@@ -121,12 +129,12 @@ func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 	defer e.mu.RUnlock()
 
 	generatedEvents := make([]rules.Event, 0)
-	evaluatedRules := make(map[*rules.Rule]bool)
+	evaluatedRules := make(map[string]bool) // Keep track of evaluated rules
 	for factName := range inputFact {
 		matchingRules, ok := e.RuleIndex[factName]
 		if ok {
 			for _, rule := range matchingRules {
-				if _, alreadyEvaluated := evaluatedRules[rule]; !alreadyEvaluated {
+				if _, alreadyEvaluated := evaluatedRules[rule.Name]; !alreadyEvaluated {
 					// Create a copy of the rule before evaluating it
 					ruleCopy := *rule
 					satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts)
@@ -139,7 +147,7 @@ func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 						}
 						generatedEvents = append(generatedEvents, ruleCopy.Event)
 					}
-					evaluatedRules[rule] = true
+					evaluatedRules[rule.Name] = true
 				}
 			}
 		}
@@ -159,7 +167,7 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 
 	for ruleIndex, existingRule := range e.Rules {
 		if existingRule.Name == ruleName {
-			e.removeFromIndex(&existingRule)
+			e.removeFromIndex(existingRule.Name)
 			oldPriority := existingRule.Priority
 			e.Rules[ruleIndex] = newRule
 			e.addToIndex(&newRule)

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
@@ -772,15 +771,8 @@ func TestIntegrationEngineWithRealWorldScenario(t *testing.T) {
 		t.Fatalf("Failed to evaluate facts: %v", err)
 	}
 
-	// Print the state of the engine and the returned events for debugging
-	fmt.Printf("Engine state: %+v\n", engine)
-	fmt.Printf("Returned events: %+v\n", events)
-
 	if len(events) != 1 {
 		t.Fatalf("Expected 1 event, got %d", len(events))
 	}
 
-	// Print the state of the engine and the returned events for debugging
-	fmt.Printf("Engine state: %+v\n", engine)
-	fmt.Printf("Returned events: %+v\n", events)
 }
