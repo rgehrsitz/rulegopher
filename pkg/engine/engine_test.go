@@ -846,3 +846,47 @@ func TestIntegrationEngineWithExternalData(t *testing.T) {
 		t.Fatalf("Expected event type 'High Temperature', got '%s'", events[0].EventType)
 	}
 }
+
+func TestEngine_EvaluateRules_InvalidRule(t *testing.T) {
+	// Create a new engine
+	engine := NewEngine()
+
+	// Create an invalid rule
+	invalidRule := &Rule{
+		ID: "invalidRule",
+		Conditions: []Condition{
+			{
+				Field:    "nonExistentField",
+				Operator: "equals",
+				Value:    "someValue",
+			},
+		},
+		Actions: []Action{
+			{
+				Type: "nonExistentAction",
+				Parameters: map[string]interface{}{
+					"param1": "value1",
+				},
+			},
+		},
+	}
+
+	// Add the invalid rule to the engine
+	engine.AddRule(invalidRule)
+
+	// Create a fact
+	fact := &Fact{
+		ID: "fact1",
+		Data: map[string]interface{}{
+			"field1": "value1",
+		},
+	}
+
+	// Evaluate the rules with the fact
+	_, err := engine.EvaluateRules(fact)
+
+	// Check if an error was returned
+	if err == nil {
+		t.Errorf("Expected an error, but got nil")
+	}
+}
