@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// The "Rule" type represents a rule with a name, priority, conditions, and an event.
+// Rule represents a rule with a name, priority, conditions, and an event.
 // @property {string} Name - The Name property is a string that represents the name of the rule.
 // @property {int} Priority - Priority is an integer value that determines the order in which rules are
 // evaluated. Rules with higher priority values are evaluated before rules with lower priority values.
@@ -24,7 +24,7 @@ type Rule struct {
 	Event      Event      `json:"event"`
 }
 
-// The above code defines a struct type named "Event" with various fields and JSON tags.
+// Event defines a struct type named "Event" with various fields and JSON tags.
 // @property {string} EventType - The EventType property is a string that represents the type of event.
 // It can be used to categorize different types of events.
 // @property CustomProperty - The `CustomProperty` field is of type `interface{}`. This means it can
@@ -45,7 +45,7 @@ type Event struct {
 	RuleName       string        `json:"ruleName,omitempty"`
 }
 
-// The Conditions type is a struct that contains two arrays of Condition structs, one for all
+// Conditions is a struct that contains two arrays of Condition structs, one for all
 // conditions and one for any conditions.
 // @property {[]Condition} All - The "All" property is an array of conditions. It represents a set of
 // conditions that must all be true for a certain condition to be considered true. In other words, all
@@ -57,7 +57,7 @@ type Conditions struct {
 	Any []Condition `json:"any"`
 }
 
-// The type represents a condition with a fact, operator, value, and optional nested conditions.
+// Condition represents a condition with a fact, operator, value, and optional nested conditions.
 // @property {string} Fact - The "Fact" property represents the specific fact or attribute that the
 // condition is checking. It is a string that describes the fact being evaluated.
 // @property {string} Operator - The "Operator" property in the "Condition" struct represents the
@@ -81,7 +81,7 @@ type Condition struct {
 	Any      []Condition `json:"any,omitempty"`
 }
 
-// The code defines a type called "Fact" which is a map with string keys and interface{} values.
+// Fact is a map with string keys and interface{} values.
 type Fact map[string]interface{}
 
 // The line `const epsilon = 1e-9` is declaring a constant named `epsilon` with a value of `1e-9`. This
@@ -90,13 +90,13 @@ type Fact map[string]interface{}
 // than or equal to `epsilon`.
 const epsilon = 1e-9
 
-// The function "almostEqual" checks if two floating-point numbers are almost equal within a certain
+// almostEqual checks if two floating-point numbers are almost equal within a certain
 // epsilon value.
 func almostEqual(a, b float64) bool {
 	return math.Abs(a-b) <= epsilon
 }
 
-// The `Validate` function is a method of the `Rule` struct. It is used to validate the operators used
+// Validate is a method of the `Rule` struct. It is used to validate the operators used
 // in the conditions of the rule.
 func (r *Rule) Validate() error {
 	validOperators := map[string]bool{
@@ -125,7 +125,7 @@ func (r *Rule) Validate() error {
 	return nil
 }
 
-// The `Evaluate` function is a method of the `Rule` struct. It takes a `fact` of type `Fact` and a
+// Evaluate is a method of the `Rule` struct. It takes a `fact` of type `Fact` and a
 // boolean `includeTriggeringFact` as parameters.
 func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 	satisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
@@ -161,7 +161,7 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 	return len(r.Conditions.Any) == 0, nil
 }
 
-// The `Evaluate` function is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
+// Evaluate is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
 // parameter and evaluates the condition against the given fact.
 func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, error) {
 	validOperators := map[string]bool{
@@ -248,7 +248,7 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 	return evaluateConditions(condition.All, fact)
 }
 
-// The function `convertToFloat64` takes in a value of any type and attempts to convert it to a
+// convertToFloat64 takes in a value of any type and attempts to convert it to a
 // float64, returning the converted value, a boolean indicating success or failure, and an error if
 // applicable.
 func convertToFloat64(value interface{}) (float64, bool, error) {
@@ -267,7 +267,7 @@ func convertToFloat64(value interface{}) (float64, bool, error) {
 	return 0, false, fmt.Errorf("unsupported type: %T", value)
 }
 
-// The function "contains" checks if a given string is present in a slice of strings.
+// contains checks if a given string is present in a slice of strings.
 func contains(slice []string, str string) bool {
 	for _, s := range slice {
 		if s == str {
@@ -277,7 +277,7 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
-// The function evaluates a list of conditions against a given fact and returns whether any conditions
+// evaluateConditions evaluates a list of conditions against a given fact and returns whether any conditions
 // are satisfied, along with the corresponding facts and values.
 func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []interface{}, error) {
 	var facts []string

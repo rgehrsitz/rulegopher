@@ -9,7 +9,7 @@ import (
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
 )
 
-// The type Handler is a struct that contains an engine and a factHandler.
+// Handler is a struct that contains an engine and a factHandler.
 // @property engine - The `engine` property is a pointer to an instance of the `Engine` struct. It is
 // likely used to interact with the main engine or core functionality of the application.
 // @property factHandler - The `factHandler` property is an instance of the `FactHandler` struct from
@@ -20,7 +20,7 @@ type Handler struct {
 	factHandler *facts.FactHandler
 }
 
-// The NewHandler function returns a new instance of the Handler struct with the provided engine and
+// NewHandler returns a new instance of the Handler struct with the provided engine and
 // factHandler.
 func NewHandler(engine *engine.Engine, factHandler *facts.FactHandler) *Handler {
 	return &Handler{
@@ -29,7 +29,7 @@ func NewHandler(engine *engine.Engine, factHandler *facts.FactHandler) *Handler 
 	}
 }
 
-// The `AddRule` function is a method of the `Handler` struct. It is responsible for adding a new rule
+// AddRule is a method of the `Handler` struct. It is responsible for adding a new rule
 // to the engine.
 func (h *Handler) AddRule(w http.ResponseWriter, r *http.Request) {
 	var rule rules.Rule
@@ -54,7 +54,7 @@ func (h *Handler) AddRule(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// The `RemoveRule` function is a method of the `Handler` struct. It is responsible for removing a rule
+// RemoveRule is a method of the `Handler` struct. It is responsible for removing a rule
 // from the engine based on the provided rule name.
 func (h *Handler) RemoveRule(w http.ResponseWriter, r *http.Request) {
 	ruleName := r.URL.Query().Get("name")
@@ -66,7 +66,7 @@ func (h *Handler) RemoveRule(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// The `EvaluateFact` function is a method of the `Handler` struct. It is responsible for evaluating a
+// EvaluateFact is a method of the `Handler` struct. It is responsible for evaluating a
 // fact by decoding the fact data from the request body, handling the fact using the `factHandler`
 // instance, and encoding the resulting events as a JSON response.
 func (h *Handler) EvaluateFact(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +84,7 @@ func (h *Handler) EvaluateFact(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(events)
 }
 
-// The `ServeHTTP` function is a method of the `Handler` struct that implements the `http.Handler`
+// ServeHTTP` is a method of the `Handler` struct that implements the `http.Handler`
 // interface. It is responsible for handling incoming HTTP requests and routing them to the appropriate
 // methods based on the URL path.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

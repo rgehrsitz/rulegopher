@@ -7,7 +7,7 @@ import (
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
 )
 
-// The `Engine` type represents a rule engine with rules and related properties.
+// Engine represents a rule engine with rules and related properties.
 // @property Rules - The `Rules` property is a map that stores the rules of the engine. Each rule is
 // identified by a string key and the corresponding value is an instance of the `rules.Rule` struct.
 // @property RuleIndex - The RuleIndex property is a map that stores the rules indexed by their names.
@@ -29,7 +29,7 @@ type Engine struct {
 	ReportRuleName bool
 }
 
-// The NewEngine function returns a new instance of the Engine struct with initialized maps.
+// NewEngine returns a new instance of the Engine struct with initialized maps.
 func NewEngine() *Engine {
 	return &Engine{
 		Rules:          make(map[string]rules.Rule),
@@ -39,7 +39,7 @@ func NewEngine() *Engine {
 	}
 }
 
-// The `AddRule` function is a method of the `Engine` struct. It adds a new rule to the rule engine.
+// AddRule is a method of the `Engine` struct. It adds a new rule to the rule engine.
 func (e *Engine) AddRule(rule rules.Rule) error {
 	// Check if the rule name is empty
 	if rule.Name == "" {
@@ -72,7 +72,7 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 	return nil
 }
 
-// The `addToIndex` method of the `Engine` struct is responsible for adding a rule to the rule index.
+// addToIndex is a method of the `Engine` struct and is responsible for adding a rule to the rule index.
 // It iterates over the conditions of the rule and calls the `insertRuleIntoIndex` method for each
 // condition. This ensures that the rule is correctly indexed based on its conditions.
 func (e *Engine) addToIndex(rule *rules.Rule) {
@@ -84,7 +84,7 @@ func (e *Engine) addToIndex(rule *rules.Rule) {
 	}
 }
 
-// The `insertRuleIntoIndex` function is responsible for inserting a rule into the rule index of the
+// insertRuleIntoIndex is responsible for inserting a rule into the rule index of the
 // engine.
 func (e *Engine) insertRuleIntoIndex(fact string, ruleName string) {
 	existingRules := e.RuleIndex[fact]
@@ -112,7 +112,7 @@ func (e *Engine) insertRuleIntoIndex(fact string, ruleName string) {
 	e.RuleIndex[fact] = existingRules
 }
 
-// The `RemoveRule` function is a method of the `Engine` struct. It is used to remove a rule from the
+// RemoveRule is a method of the `Engine` struct. It is used to remove a rule from the
 // rule engine.
 func (e *Engine) RemoveRule(ruleName string) error {
 	e.mu.Lock()
@@ -129,7 +129,7 @@ func (e *Engine) RemoveRule(ruleName string) error {
 	return nil
 }
 
-// The `removeFromIndex` method of the `Engine` struct is responsible for removing a rule from the rule
+// removeFromIndex is a method of the `Engine` struct and is responsible for removing a rule from the rule
 // index. It iterates over the rule index and checks if the rule name matches the given `ruleName`. If
 // a match is found, it removes the rule from the slice of matching rules for that fact. It does this
 // by using the `append` function to create a new slice that excludes the rule at the specified index.
@@ -144,7 +144,7 @@ func (e *Engine) removeFromIndex(ruleName string) {
 	}
 }
 
-// The `Evaluate` method of the `Engine` struct is responsible for evaluating the input fact against
+// Evaluate is a method of the `Engine` struct and is responsible for evaluating the input fact against
 // the rules in the rule engine.
 func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 	e.mu.RLock()
@@ -178,7 +178,7 @@ func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 	return generatedEvents, nil
 }
 
-// The `UpdateRule` method is a function of the `Engine` struct. It is used to update an existing rule
+// UpdateRule is a function of the `Engine` struct. It is used to update an existing rule
 // in the rule engine.
 func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 	e.mu.Lock()
