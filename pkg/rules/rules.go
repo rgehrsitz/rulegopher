@@ -86,8 +86,10 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 		return false, nil
 	}
 	if satisfied && includeTriggeringFact {
-		r.Event.Facts = append(r.Event.Facts, facts...)
-		r.Event.Values = append(r.Event.Values, values...)
+		event := r.Event
+		event.Facts = append(event.Facts, facts...)
+		event.Values = append(event.Values, values...)
+		r.Event = event
 	}
 
 	if len(r.Conditions.Any) > 0 {
@@ -97,8 +99,10 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 		}
 		if satisfied {
 			if includeTriggeringFact {
-				r.Event.Facts = append(r.Event.Facts, facts...)
-				r.Event.Values = append(r.Event.Values, values...)
+				event := r.Event
+				event.Facts = append(event.Facts, facts...)
+				event.Values = append(event.Values, values...)
+				r.Event = event
 			}
 			return true, nil
 		}
