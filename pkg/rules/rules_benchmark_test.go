@@ -5,31 +5,48 @@ import (
 )
 
 func BenchmarkEvaluate(b *testing.B) {
-	// Initialize a rule and a fact
-	rule := Rule{
-		Name:     "Rule1",
+	// Setup
+	engine := NewEngine()
+
+	rule := rules.Rule{
+		Name:     "TestRule",
 		Priority: 1,
-		Conditions: Conditions{
-			All: []Condition{
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
 				{
 					Fact:     "temperature",
 					Operator: "greaterThan",
 					Value:    30,
 				},
+				{
+					Fact:     "humidity",
+					Operator: "lessThan",
+					Value:    0.5,
+				},
 			},
 		},
-		Event: Event{
-			EventType:      "Event1",
-			CustomProperty: "Custom1",
+		Event: rules.Event{
+			EventType:      "alert",
+			CustomProperty: "AC turned on",
 		},
 	}
-	fact := Fact{
+
+	err := engine.AddRule(rule)
+	if err != nil {
+		b.Fatalf("Failed to add rule: %v", err)
+	}
+
+	fact := rules.Fact{
 		"temperature": 35,
+		"humidity":    0.4,
 	}
 
 	// Run the benchmark
-	b.ResetTimer()
+	b.ResetTimer() // Reset the timer to ignore the setup time
 	for i := 0; i < b.N; i++ {
-		rule.Evaluate(fact, true)
+		_, err := engine.Evaluate(fact)
+		if err != nil {
+			b.Fatalf("Failed to evaluate facts: %v", err)
+		}
 	}
 }

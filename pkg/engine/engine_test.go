@@ -4,7 +4,21 @@ import (
 	"testing"
 
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
+	"github.com/stretchr/testify/mock"
 )
+
+type DataSource interface {
+	FetchFacts() (map[string]interface{}, error)
+}
+
+type MockDataSource struct {
+	mock.Mock
+}
+
+func (m *MockDataSource) FetchFacts() (map[string]interface{}, error) {
+	args := m.Called()
+	return args.Get(0).(map[string]interface{}), args.Error(1)
+}
 
 func TestEngine(t *testing.T) {
 	engine := NewEngine()
@@ -775,4 +789,60 @@ func TestIntegrationEngineWithRealWorldScenario(t *testing.T) {
 		t.Fatalf("Expected 1 event, got %d", len(events))
 	}
 
+}
+
+func TestIntegrationEngineWithExternalData(t *testing.T) {
+	// Mock external data source
+	mockDataSource := new(MockDataSource)
+
+	// Set up the mock data source to return specific facts when called
+	mockDataSource.On("FetchFacts").Return(map[string]interface{}{
+		"temperature": 35,
+		"humidity":    75,
+	}, nil)
+
+	// Create a new engine
+	engine := NewEngine()
+
+	// Add rules
+	rule1 := rules.Rule{
+		Name:     "Rule 1",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "High Temperature",
+		},
+	}
+	err := engine.AddRule(rule1)
+	if err != nil {
+		t.Fatalf("Failed to add rule: %v", err)
+	}
+
+	// Fetch facts from the mock data source
+	facts, err := mockDataSource.FetchFacts()
+	if err != nil {
+		t.Fatalf("Failed to fetch facts: %v", err)
+	}
+
+	// Evaluate facts
+	events, err := engine.Evaluate(facts)
+	if err != nil {
+		t.Fatalf("Failed to evaluate facts: %v", err)
+	}
+
+	// Verify the results
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+	if events[0].EventType != "High Temperature" {
+		t.Fatalf("Expected event type 'High Temperature', got '%s'", events[0].EventType)
+	}
 }
