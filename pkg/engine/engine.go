@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -96,19 +97,23 @@ func (e *Engine) RemoveRule(ruleName string) error {
 			return nil
 		}
 	}
-
 	return errors.New("rule does not exist")
 }
 
 func (e *Engine) removeFromIndex(rule *rules.Rule) {
+	fmt.Printf("RuleIndex before removing rule: %+v\n", e.RuleIndex) // Debug print
+
 	for factName, matchingRules := range e.RuleIndex {
 		for ruleIndex, r := range matchingRules {
 			if r == rule {
-				e.RuleIndex[factName] = append(matchingRules[:ruleIndex], matchingRules[ruleIndex+1:]...)
+				updatedMatchingRules := append(matchingRules[:ruleIndex], matchingRules[ruleIndex+1:]...)
+				e.RuleIndex[factName] = updatedMatchingRules
 				break
 			}
 		}
 	}
+
+	fmt.Printf("RuleIndex after removing rule: %+v\n", e.RuleIndex) // Debug print
 }
 
 func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
