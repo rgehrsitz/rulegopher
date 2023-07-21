@@ -848,45 +848,103 @@ func TestIntegrationEngineWithExternalData(t *testing.T) {
 }
 
 func TestEngine_EvaluateRules_InvalidRule(t *testing.T) {
-	// Create a new engine
 	engine := NewEngine()
 
-	// Create an invalid rule
-	invalidRule := &Rule{
-		ID: "invalidRule",
-		Conditions: []Condition{
-			{
-				Field:    "nonExistentField",
-				Operator: "equals",
-				Value:    "someValue",
-			},
-		},
-		Actions: []Action{
-			{
-				Type: "nonExistentAction",
-				Parameters: map[string]interface{}{
-					"param1": "value1",
+	invalidRule := rules.Rule{
+		Name:     "InvalidRule",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "invalidOperator",
+					Value:    30,
 				},
 			},
 		},
-	}
-
-	// Add the invalid rule to the engine
-	engine.AddRule(invalidRule)
-
-	// Create a fact
-	fact := &Fact{
-		ID: "fact1",
-		Data: map[string]interface{}{
-			"field1": "value1",
+		Event: rules.Event{
+			EventType: "High Temperature",
 		},
 	}
 
-	// Evaluate the rules with the fact
-	_, err := engine.EvaluateRules(fact)
+	// Directly add the invalid rule to the engine's Rules slice
+	engine.Rules = append(engine.Rules, invalidRule)
 
-	// Check if an error was returned
+	// Also add the invalid rule to the engine's RuleIndex map
+	engine.RuleIndex["temperature"] = append(engine.RuleIndex["temperature"], &invalidRule)
+
+	fact := rules.Fact{
+		"temperature": 35,
+	}
+
+	_, err := engine.Evaluate(fact)
 	if err == nil {
-		t.Errorf("Expected an error, but got nil")
+		t.Fatalf("Expected error when evaluating invalid rule, but got none")
+	}
+}
+
+func TestEngine_EvaluateRules_MixedValidity(t *testing.T) {
+	engine := NewEngine()
+
+	// Add a valid rule
+	validRule := rules.Rule{
+		Name:     "Valid Rule",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "High Temperature",
+		},
+	}
+	err := engine.AddRule(validRule)
+	if err != nil {
+		t.Fatalf("Failed to add valid rule: %v", err)
+	}
+
+	// Add an invalid rule
+	invalidRule := rules.Rule{
+		Name:     "Invalid Rule",
+		Priority: 2,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "humidity",
+					Operator: "invalidOperator", // This operator is invalid
+					Value:    70,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "High Humidity",
+		},
+	}
+	err = engine.AddRule(invalidRule)
+	if err == nil {
+		t.Fatalf("Expected error when adding invalid rule, got nil")
+	}
+
+	// Evaluate facts
+	fact := rules.Fact{
+		"temperature": 35,
+		"humidity":    75,
+	}
+	events, err := engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Failed to evaluate facts: %v", err)
+	}
+
+	// Only the valid rule should have been evaluated
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+	if events[0].EventType != "High Temperature" {
+		t.Fatalf("Expected event type 'High Temperature', got '%s'", events[0].EventType)
 	}
 }
