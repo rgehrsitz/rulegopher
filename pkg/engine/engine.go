@@ -9,7 +9,7 @@ import (
 )
 
 type Engine struct {
-	Rules          []rules.Rule
+	Rules          map[string]rules.Rule
 	RuleIndex      map[string][]*rules.Rule
 	mu             sync.RWMutex
 	ReportFacts    bool
@@ -18,7 +18,7 @@ type Engine struct {
 
 func NewEngine() *Engine {
 	return &Engine{
-		Rules:          make([]rules.Rule, 0),
+		Rules:          make(map[string]rules.Rule),
 		RuleIndex:      make(map[string][]*rules.Rule),
 		ReportFacts:    false,
 		ReportRuleName: false,
@@ -26,7 +26,6 @@ func NewEngine() *Engine {
 }
 
 func (e *Engine) AddRule(rule rules.Rule) error {
-
 	// Check if the rule name is empty
 	if rule.Name == "" {
 		return errors.New("rule name cannot be empty")
@@ -45,21 +44,14 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 		return errors.New("rule conditions cannot be nil")
 	}
 
-	for _, existingRule := range e.Rules {
-		if existingRule.Name == rule.Name {
-			return errors.New("rule already exists")
-		}
+	// Check if the rule already exists
+	if _, exists := e.Rules[rule.Name]; exists {
+		return errors.New("rule already exists")
 	}
 
-	// Insert the rule in the correct position to maintain sorted order
-	insertionIndex := sort.Search(len(e.Rules), func(i int) bool {
-		return e.Rules[i].Priority > rule.Priority
-	})
-	e.Rules = append(e.Rules, rules.Rule{})
-	copy(e.Rules[insertionIndex+1:], e.Rules[insertionIndex:])
-	e.Rules[insertionIndex] = rule
-
+	e.Rules[rule.Name] = rule
 	e.addToIndex(&rule)
+
 	return nil
 }
 
@@ -102,15 +94,15 @@ func (e *Engine) RemoveRule(ruleName string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	for ruleIndex, rule := range e.Rules {
-		if rule.Name == ruleName {
-			e.Rules = append(e.Rules[:ruleIndex], e.Rules[ruleIndex+1:]...)
-			e.removeFromIndex(ruleName)
-			return nil
-		}
+	// Check if the rule exists
+	if _, exists := e.Rules[ruleName]; !exists {
+		return errors.New("rule does not exist")
 	}
 
-	return errors.New("rule does not exist")
+	delete(e.Rules, ruleName)
+	e.removeFromIndex(ruleName)
+
+	return nil
 }
 
 func (e *Engine) removeFromIndex(ruleName string) {
@@ -165,21 +157,14 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 		return err
 	}
 
-	for ruleIndex, existingRule := range e.Rules {
-		if existingRule.Name == ruleName {
-			e.removeFromIndex(existingRule.Name)
-			oldPriority := existingRule.Priority
-			e.Rules[ruleIndex] = newRule
-			e.addToIndex(&newRule)
-			// Re-sort the rules after updating only if the priority has changed
-			if oldPriority != newRule.Priority {
-				sort.Slice(e.Rules, func(i, j int) bool {
-					return e.Rules[i].Priority < e.Rules[j].Priority
-				})
-			}
-			return nil
-		}
+	// Check if the rule exists
+	if _, exists := e.Rules[ruleName]; !exists {
+		return errors.New("rule does not exist")
 	}
 
-	return errors.New("rule does not exist")
+	e.removeFromIndex(ruleName)
+	e.Rules[ruleName] = newRule
+	e.addToIndex(&newRule)
+
+	return nil
 }

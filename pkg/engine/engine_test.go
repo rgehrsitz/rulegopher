@@ -867,8 +867,8 @@ func TestEngine_EvaluateRules_InvalidRule(t *testing.T) {
 		},
 	}
 
-	// Directly add the invalid rule to the engine's Rules slice
-	engine.Rules = append(engine.Rules, invalidRule)
+	// Directly add the invalid rule to the engine's Rules map
+	engine.Rules[invalidRule.Name] = invalidRule
 
 	// Also add the invalid rule to the engine's RuleIndex map
 	engine.RuleIndex["temperature"] = append(engine.RuleIndex["temperature"], &invalidRule)
