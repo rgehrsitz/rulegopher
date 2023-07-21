@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
@@ -689,4 +690,97 @@ func TestAddRuleWithEmptyName(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error when adding rule with empty name, but got none")
 	}
+}
+
+func TestIntegrationEngineWithRealWorldScenario(t *testing.T) {
+	engine := NewEngine()
+
+	// Add rules
+	rule1 := rules.Rule{
+		Name:     "Rule 1",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "High Temperature",
+		},
+	}
+	err := engine.AddRule(rule1)
+	if err != nil {
+		t.Fatalf("Failed to add rule: %v", err)
+	}
+
+	rule2 := rules.Rule{
+		Name:     "Rule 2",
+		Priority: 2,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "humidity",
+					Operator: "greaterThan",
+					Value:    70,
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "High Humidity",
+		},
+	}
+	err = engine.AddRule(rule2)
+	if err != nil {
+		t.Fatalf("Failed to add rule: %v", err)
+	}
+
+	// Evaluate facts
+	fact := rules.Fact{
+		"temperature": 35,
+		"humidity":    75,
+	}
+	events, err := engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Failed to evaluate facts: %v", err)
+	}
+
+	if len(events) != 2 {
+		t.Fatalf("Expected 2 events, got %d", len(events))
+	}
+
+	// Update rule
+	rule1Updated := rule1
+	rule1Updated.Priority = 3
+	err = engine.UpdateRule("Rule 1", rule1Updated)
+	if err != nil {
+		t.Fatalf("Failed to update rule: %v", err)
+	}
+
+	// Remove rule
+	err = engine.RemoveRule("Rule 2")
+	if err != nil {
+		t.Fatalf("Failed to remove rule: %v", err)
+	}
+
+	// Evaluate facts again
+	events, err = engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Failed to evaluate facts: %v", err)
+	}
+
+	// Print the state of the engine and the returned events for debugging
+	fmt.Printf("Engine state: %+v\n", engine)
+	fmt.Printf("Returned events: %+v\n", events)
+
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+
+	// Print the state of the engine and the returned events for debugging
+	fmt.Printf("Engine state: %+v\n", engine)
+	fmt.Printf("Returned events: %+v\n", events)
 }
