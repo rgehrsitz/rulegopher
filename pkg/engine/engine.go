@@ -45,8 +45,10 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 	}
 
 	// Check if the rule already exists
-	if _, exists := e.Rules[rule.Name]; exists {
-		return errors.New("rule already exists")
+	for _, existingRule := range e.Rules {
+		if existingRule.Name == rule.Name {
+			return &RuleAlreadyExistsError{RuleName: rule.Name}
+		}
 	}
 
 	e.Rules[rule.Name] = rule
@@ -96,7 +98,7 @@ func (e *Engine) RemoveRule(ruleName string) error {
 
 	// Check if the rule exists
 	if _, exists := e.Rules[ruleName]; !exists {
-		return errors.New("rule does not exist")
+		return &RuleDoesNotExistError{RuleName: ruleName}
 	}
 
 	delete(e.Rules, ruleName)
@@ -159,7 +161,7 @@ func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 
 	// Check if the rule exists
 	if _, exists := e.Rules[ruleName]; !exists {
-		return errors.New("rule does not exist")
+		return &RuleDoesNotExistError{RuleName: ruleName}
 	}
 
 	e.removeFromIndex(ruleName)
