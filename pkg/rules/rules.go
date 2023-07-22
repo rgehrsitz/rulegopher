@@ -136,37 +136,35 @@ func (r *Rule) Validate() error {
 // Evaluate is a method of the `Rule` struct. It takes a `fact` of type `Fact` and a
 // boolean `includeTriggeringFact` as parameters.
 func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
-	satisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
+	allSatisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
 	if err != nil {
 		return false, err
 	}
-	if !satisfied {
+	if !allSatisfied && len(r.Conditions.All) > 0 {
 		return false, nil
 	}
-	if satisfied && includeTriggeringFact {
+	if allSatisfied && includeTriggeringFact {
 		event := r.Event
 		event.Facts = append(event.Facts, facts...)
 		event.Values = append(event.Values, values...)
 		r.Event = event
 	}
 
-	if len(r.Conditions.Any) > 0 {
-		satisfied, facts, values, err = evaluateConditions(r.Conditions.Any, fact)
-		if err != nil {
-			return false, err
+	anySatisfied, facts, values, err := evaluateConditions(r.Conditions.Any, fact)
+	if err != nil {
+		return false, err
+	}
+	if anySatisfied {
+		if includeTriggeringFact {
+			event := r.Event
+			event.Facts = append(event.Facts, facts...)
+			event.Values = append(event.Values, values...)
+			r.Event = event
 		}
-		if satisfied {
-			if includeTriggeringFact {
-				event := r.Event
-				event.Facts = append(event.Facts, facts...)
-				event.Values = append(event.Values, values...)
-				r.Event = event
-			}
-			return true, nil
-		}
+		return true, nil
 	}
 
-	return satisfied, nil
+	return len(r.Conditions.Any) == 0 && allSatisfied, nil
 }
 
 // Evaluate is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
@@ -279,10 +277,9 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 		if err != nil {
 			return false, nil, nil, err
 		}
-		if !satisfied {
-			return false, nil, nil, nil
+		if satisfied {
+			return true, facts, values, nil
 		}
-		return true, facts, values, nil
 	}
 
 	if len(condition.Any) > 0 {
@@ -334,19 +331,16 @@ func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []in
 	var values []interface{}
 
 	for _, condition := range conditions {
-		satisfied, returnedFact, value, err := condition.Evaluate(fact)
+		satisfied, fact, value, err := condition.Evaluate(fact)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		if satisfied {
-			facts = append(facts, returnedFact...)
+			facts = append(facts, fact...)
 			values = append(values, value...)
+			return true, facts, values, nil // return true as soon as a condition is satisfied
 		}
 	}
 
-	if len(facts) == 0 {
-		return false, nil, nil, nil
-	}
-
-	return true, facts, values, nil
+	return false, nil, nil, nil
 }
