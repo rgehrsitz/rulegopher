@@ -110,35 +110,36 @@ func (r *Rule) Validate() error {
 		"notContains":        true,
 	}
 
-	// Function to validate a single condition
-	validateCondition := func(condition Condition) error {
-		if _, ok := validOperators[condition.Operator]; !ok {
-			return fmt.Errorf("invalid operator: %s", condition.Operator)
-		}
-		// Validate nested conditions
-		for _, nestedCondition := range condition.All {
-			if err := validateCondition(nestedCondition); err != nil {
+	// Recursive function to validate nested conditions
+	var validateConditions func(conditions []Condition) error
+	validateConditions = func(conditions []Condition) error {
+		for _, condition := range conditions {
+			if _, ok := validOperators[condition.Operator]; !ok {
+				return fmt.Errorf("invalid operator: %s", condition.Operator)
+			}
+
+			// Validate nested conditions in the All field
+			if err := validateConditions(condition.All); err != nil {
+				return err
+			}
+
+			// Validate nested conditions in the Any field
+			if err := validateConditions(condition.Any); err != nil {
 				return err
 			}
 		}
-		for _, nestedCondition := range condition.Any {
-			if err := validateCondition(nestedCondition); err != nil {
-				return err
-			}
-		}
+
 		return nil
 	}
 
-	// Validate all conditions
-	for _, condition := range r.Conditions.All {
-		if err := validateCondition(condition); err != nil {
-			return err
-		}
+	// Validate top-level conditions in the All field
+	if err := validateConditions(r.Conditions.All); err != nil {
+		return err
 	}
-	for _, condition := range r.Conditions.Any {
-		if err := validateCondition(condition); err != nil {
-			return err
-		}
+
+	// Validate top-level conditions in the Any field
+	if err := validateConditions(r.Conditions.Any); err != nil {
+		return err
 	}
 
 	return nil
