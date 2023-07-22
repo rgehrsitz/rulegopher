@@ -110,36 +110,16 @@ func (r *Rule) Validate() error {
 		"notContains":        true,
 	}
 
-	// Recursive function to validate nested conditions
-	var validateConditions func(conditions []Condition) error
-	validateConditions = func(conditions []Condition) error {
-		for _, condition := range conditions {
-			if _, ok := validOperators[condition.Operator]; !ok {
-				return fmt.Errorf("invalid operator: %s", condition.Operator)
-			}
-
-			// Validate nested conditions in the All field
-			if err := validateConditions(condition.All); err != nil {
-				return err
-			}
-
-			// Validate nested conditions in the Any field
-			if err := validateConditions(condition.Any); err != nil {
-				return err
-			}
+	for _, condition := range r.Conditions.All {
+		if _, ok := validOperators[condition.Operator]; !ok {
+			return fmt.Errorf("invalid operator: %s", condition.Operator)
 		}
-
-		return nil
 	}
 
-	// Validate top-level conditions in the All field
-	if err := validateConditions(r.Conditions.All); err != nil {
-		return err
-	}
-
-	// Validate top-level conditions in the Any field
-	if err := validateConditions(r.Conditions.Any); err != nil {
-		return err
+	for _, condition := range r.Conditions.Any {
+		if _, ok := validOperators[condition.Operator]; !ok {
+			return fmt.Errorf("invalid operator: %s", condition.Operator)
+		}
 	}
 
 	return nil
@@ -263,27 +243,9 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 			}
 		}
 		return false, nil, nil, nil
-
 	}
 
-	// Evaluate the 'All' conditions
-	allResult, allFacts, allFactValues, err := evaluateConditions(condition.All, fact)
-	if err != nil {
-		return false, nil, nil, err
-	}
-
-	// Evaluate the 'Any' conditions
-	anyResult, anyFacts, anyFactValues, err := evaluateConditions(condition.Any, fact)
-	if err != nil {
-		return false, nil, nil, err
-	}
-
-	// Combine the results
-	result := allResult && anyResult
-	facts := append(allFacts, anyFacts...)
-	factValues := append(allFactValues, anyFactValues...)
-
-	return result, facts, factValues, nil
+	return evaluateConditions(condition.All, fact)
 }
 
 // convertToFloat64 takes in a value of any type and attempts to convert it to a
