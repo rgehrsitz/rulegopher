@@ -111,12 +111,20 @@ func (r *Rule) Validate() error {
 	}
 
 	for _, condition := range r.Conditions.All {
+		if len(condition.All) > 0 || len(condition.Any) > 0 {
+			// This is a nested condition, so we don't need to validate the operator
+			continue
+		}
 		if _, ok := validOperators[condition.Operator]; !ok {
 			return fmt.Errorf("invalid operator: %s", condition.Operator)
 		}
 	}
 
 	for _, condition := range r.Conditions.Any {
+		if len(condition.All) > 0 || len(condition.Any) > 0 {
+			// This is a nested condition, so we don't need to validate the operator
+			continue
+		}
 		if _, ok := validOperators[condition.Operator]; !ok {
 			return fmt.Errorf("invalid operator: %s", condition.Operator)
 		}
@@ -158,7 +166,7 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 		}
 	}
 
-	return len(r.Conditions.Any) == 0, nil
+	return satisfied, nil
 }
 
 // Evaluate is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
@@ -173,6 +181,27 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 		"lessThanOrEqual":    true,
 		"contains":           true,
 		"notContains":        true,
+	}
+
+	if len(condition.All) > 0 {
+		satisfied, facts, values, err := evaluateConditions(condition.All, fact)
+		if err != nil {
+			return false, nil, nil, err
+		}
+		if !satisfied {
+			return false, nil, nil, nil
+		}
+		return true, facts, values, nil
+	}
+
+	if len(condition.Any) > 0 {
+		satisfied, facts, values, err := evaluateConditions(condition.Any, fact)
+		if err != nil {
+			return false, nil, nil, err
+		}
+		if satisfied {
+			return true, facts, values, nil
+		}
 	}
 
 	if _, ok := validOperators[condition.Operator]; !ok {
@@ -245,7 +274,28 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 		return false, nil, nil, nil
 	}
 
-	return evaluateConditions(condition.All, fact)
+	if len(condition.All) > 0 {
+		satisfied, facts, values, err := evaluateConditions(condition.All, fact)
+		if err != nil {
+			return false, nil, nil, err
+		}
+		if !satisfied {
+			return false, nil, nil, nil
+		}
+		return true, facts, values, nil
+	}
+
+	if len(condition.Any) > 0 {
+		satisfied, facts, values, err := evaluateConditions(condition.Any, fact)
+		if err != nil {
+			return false, nil, nil, err
+		}
+		if satisfied {
+			return true, facts, values, nil
+		}
+	}
+
+	return false, nil, nil, nil
 }
 
 // convertToFloat64 takes in a value of any type and attempts to convert it to a
@@ -284,12 +334,12 @@ func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []in
 	var values []interface{}
 
 	for _, condition := range conditions {
-		satisfied, fact, value, err := condition.Evaluate(fact)
+		satisfied, returnedFact, value, err := condition.Evaluate(fact)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		if satisfied {
-			facts = append(facts, fact...)
+			facts = append(facts, returnedFact...)
 			values = append(values, value...)
 		}
 	}
