@@ -948,3 +948,68 @@ func TestEngine_EvaluateRules_MixedValidity(t *testing.T) {
 		t.Fatalf("Expected event type 'High Temperature', got '%s'", events[0].EventType)
 	}
 }
+
+func TestEvaluateWithNestedConditions(t *testing.T) {
+	engine := NewEngine()
+
+	// Define a rule with nested conditions
+	rule := rules.Rule{
+		Name:     "TestRule",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			All: []rules.Condition{
+				{
+					Fact:     "temperature",
+					Operator: "greaterThan",
+					Value:    30,
+				},
+				{
+					All: []rules.Condition{
+						{
+							Fact:     "humidity",
+							Operator: "lessThan",
+							Value:    0.5,
+						},
+						{
+							Fact:     "windSpeed",
+							Operator: "greaterThan",
+							Value:    10,
+						},
+					},
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType:      "alert",
+			CustomProperty: "AC turned on",
+		},
+	}
+
+	// Add the rule
+	err := engine.AddRule(rule)
+	if err != nil {
+		t.Fatalf("Failed to add rule: %v", err)
+	}
+
+	// Define a fact that matches the rule's conditions
+	fact := rules.Fact{
+		"temperature": 35,
+		"humidity":    0.6,
+		"windSpeed":   15,
+	}
+
+	// Evaluate the fact
+	events, err := engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Error evaluating fact: %v", err)
+	}
+
+	// Check that the list of events contains the rule's event
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+
+	if events[0].EventType != "alert" {
+		t.Errorf("Expected event type 'alert', got '%s'", events[0].EventType)
+	}
+}
