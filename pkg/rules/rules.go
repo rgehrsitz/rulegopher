@@ -110,17 +110,11 @@ func (r *Rule) Validate() error {
 		"notContains":        true,
 	}
 
-	// Declare the function variable
-	var validateCondition func(condition Condition) error
-
-	// Assign the function body to the variable
-	validateCondition = func(condition Condition) error {
-		if condition.Fact != "" && condition.Operator != "" {
-			if _, ok := validOperators[condition.Operator]; !ok {
-				return fmt.Errorf("invalid operator: %s", condition.Operator)
-			}
+	// Function to validate a single condition
+	validateCondition := func(condition Condition) error {
+		if _, ok := validOperators[condition.Operator]; !ok {
+			return fmt.Errorf("invalid operator: %s", condition.Operator)
 		}
-
 		// Validate nested conditions
 		for _, nestedCondition := range condition.All {
 			if err := validateCondition(nestedCondition); err != nil {
