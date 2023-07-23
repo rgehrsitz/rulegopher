@@ -76,11 +76,19 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 // It iterates over the conditions of the rule and calls the `insertRuleIntoIndex` method for each
 // condition. This ensures that the rule is correctly indexed based on its conditions.
 func (e *Engine) addToIndex(rule *rules.Rule) {
-	for _, condition := range rule.Conditions.All {
-		e.insertRuleIntoIndex(condition.Fact, rule.Name)
-	}
-	for _, condition := range rule.Conditions.Any {
-		e.insertRuleIntoIndex(condition.Fact, rule.Name)
+	e.processConditions(rule.Conditions.All, rule.Name)
+	e.processConditions(rule.Conditions.Any, rule.Name)
+}
+
+func (e *Engine) processConditions(conditions []rules.Condition, ruleName string) {
+	for _, condition := range conditions {
+		e.insertRuleIntoIndex(condition.Fact, ruleName)
+		if len(condition.All) > 0 {
+			e.processConditions(condition.All, ruleName)
+		}
+		if len(condition.Any) > 0 {
+			e.processConditions(condition.Any, ruleName)
+		}
 	}
 }
 
