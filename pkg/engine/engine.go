@@ -4,23 +4,11 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/rgehrsitz/rulegopher/pkg/rules"
 )
 
-// Engine represents a rule engine with rules and related properties.
-// @property Rules - The `Rules` property is a map that stores the rules of the engine. Each rule is
-// identified by a string key and the corresponding value is an instance of the `rules.Rule` struct.
-// @property RuleIndex - The RuleIndex property is a map that stores the rules indexed by their names.
-// Each rule name is mapped to a slice of pointers to Rule objects. This allows for efficient lookup of
-// rules by their names.
-// @property mu - The `mu` property is a `sync.RWMutex` type, which is a mutual exclusion lock. It
-// provides a way to synchronize access to shared resources by allowing multiple readers or a single
-// writer at a time. In this case, it is used to protect concurrent access to the `Engine`
-// @property {bool} ReportFacts - A boolean value indicating whether to report the facts during the
-// execution of the rules.
-// @property {bool} ReportRuleName - The `ReportRuleName` property is a boolean flag that determines
-// whether or not to include the rule name in the generated report. If set to `true`, the rule name
-// will be included in the report. If set to `false`, the rule name will be excluded from the report.
+// Engine represents a rule engine.
 type Engine struct {
 	Rules          map[string]rules.Rule
 	RuleIndex      map[string][]*rules.Rule
@@ -39,14 +27,12 @@ func NewEngine() *Engine {
 	}
 }
 
-// AddRule is a method of the `Engine` struct. It adds a new rule to the rule engine.
+// AddRule adds a new rule to the rule engine.
 func (e *Engine) AddRule(rule rules.Rule) error {
-	// Check if the rule name is empty
 	if rule.Name == "" {
 		return &EmptyRuleNameError{}
 	}
 
-	// Validate the rule before adding it
 	if err := rule.Validate(); err != nil {
 		return err
 	}
@@ -54,12 +40,10 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	// Check if the Conditions field of the rule is nil
 	if rule.Conditions.All == nil && rule.Conditions.Any == nil {
 		return &NilRuleConditionsError{RuleName: rule.Name}
 	}
 
-	// Check if the rule already exists
 	for _, existingRule := range e.Rules {
 		if existingRule.Name == rule.Name {
 			return &RuleAlreadyExistsError{RuleName: rule.Name}
@@ -72,14 +56,13 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 	return nil
 }
 
-// addToIndex is a method of the `Engine` struct and is responsible for adding a rule to the rule index.
-// It iterates over the conditions of the rule and calls the `insertRuleIntoIndex` method for each
-// condition. This ensures that the rule is correctly indexed based on its conditions.
+// addToIndex adds a rule to the rule index.
 func (e *Engine) addToIndex(rule *rules.Rule) {
 	e.processConditions(rule.Conditions.All, rule)
 	e.processConditions(rule.Conditions.Any, rule)
 }
 
+// processConditions processes conditions for indexing.
 func (e *Engine) processConditions(conditions []rules.Condition, rule *rules.Rule) {
 	for _, condition := range conditions {
 		e.insertRuleIntoIndex(condition.Fact, rule)
@@ -92,8 +75,7 @@ func (e *Engine) processConditions(conditions []rules.Condition, rule *rules.Rul
 	}
 }
 
-// insertRuleIntoIndex is responsible for inserting a rule into the rule index of the
-// engine.
+// insertRuleIntoIndex inserts a rule into the rule index.
 func (e *Engine) insertRuleIntoIndex(fact string, rule *rules.Rule) {
 	existingRules := e.RuleIndex[fact]
 
@@ -108,8 +90,7 @@ func (e *Engine) insertRuleIntoIndex(fact string, rule *rules.Rule) {
 	e.RuleIndex[fact] = existingRules
 }
 
-// RemoveRule is a method of the `Engine` struct. It is used to remove a rule from the
-// rule engine.
+// RemoveRule removes a rule from the rule engine.
 func (e *Engine) RemoveRule(ruleName string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -125,10 +106,7 @@ func (e *Engine) RemoveRule(ruleName string) error {
 	return nil
 }
 
-// removeFromIndex is a method of the `Engine` struct and is responsible for removing a rule from the rule
-// index. It iterates over the rule index and checks if the rule name matches the given `ruleName`. If
-// a match is found, it removes the rule from the slice of matching rules for that fact. It does this
-// by using the `append` function to create a new slice that excludes the rule at the specified index.
+// removeFromIndex removes a rule from the rule index.
 func (e *Engine) removeFromIndex(ruleName string) {
 	for factName, matchingRules := range e.RuleIndex {
 		for ruleIndex, r := range matchingRules {
@@ -140,13 +118,13 @@ func (e *Engine) removeFromIndex(ruleName string) {
 	}
 }
 
-// Evaluate is a method of the `Engine` struct and is responsible for evaluating the input fact against
-// the rules in the rule engine.
+// Evaluate evaluates the input fact against the rules.
 func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 	generatedEvents := make([]rules.Event, 0)
 	evaluatedRules := make(map[string]bool) // Keep track of evaluated rules
 
 	var matchingRules []*rules.Rule
+
 	for factName := range inputFact {
 		e.mu.RLock()
 		if rules, ok := e.RuleIndex[factName]; ok {
@@ -155,13 +133,15 @@ func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 		e.mu.RUnlock()
 	}
 
+	var result *multierror.Error
 	for _, rule := range matchingRules {
 		if _, alreadyEvaluated := evaluatedRules[rule.Name]; !alreadyEvaluated {
 			// Create a copy of the rule before evaluating it
 			ruleCopy := *rule
 			satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts)
 			if err != nil {
-				return nil, err
+				result = multierror.Append(result, err)
+				continue
 			}
 			if satisfied {
 				if e.ReportRuleName { // Check if the ReportRuleName option is enabled
@@ -173,11 +153,10 @@ func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 		}
 	}
 
-	return generatedEvents, nil
+	return generatedEvents, result.ErrorOrNil()
 }
 
-// UpdateRule is a function of the `Engine` struct. It is used to update an existing rule
-// in the rule engine.
+// UpdateRule updates an existing rule in the rule engine.
 func (e *Engine) UpdateRule(ruleName string, newRule rules.Rule) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
