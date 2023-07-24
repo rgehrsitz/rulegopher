@@ -76,38 +76,26 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 // It iterates over the conditions of the rule and calls the `insertRuleIntoIndex` method for each
 // condition. This ensures that the rule is correctly indexed based on its conditions.
 func (e *Engine) addToIndex(rule *rules.Rule) {
-	e.processConditions(rule.Conditions.All, rule.Name)
-	e.processConditions(rule.Conditions.Any, rule.Name)
+	e.processConditions(rule.Conditions.All, rule)
+	e.processConditions(rule.Conditions.Any, rule)
 }
 
-func (e *Engine) processConditions(conditions []rules.Condition, ruleName string) {
+func (e *Engine) processConditions(conditions []rules.Condition, rule *rules.Rule) {
 	for _, condition := range conditions {
-		e.insertRuleIntoIndex(condition.Fact, ruleName)
+		e.insertRuleIntoIndex(condition.Fact, rule)
 		if len(condition.All) > 0 {
-			e.processConditions(condition.All, ruleName)
+			e.processConditions(condition.All, rule)
 		}
 		if len(condition.Any) > 0 {
-			e.processConditions(condition.Any, ruleName)
+			e.processConditions(condition.Any, rule)
 		}
 	}
 }
 
 // insertRuleIntoIndex is responsible for inserting a rule into the rule index of the
 // engine.
-func (e *Engine) insertRuleIntoIndex(fact string, ruleName string) {
+func (e *Engine) insertRuleIntoIndex(fact string, rule *rules.Rule) {
 	existingRules := e.RuleIndex[fact]
-
-	// Find the rule by its name
-	var rule *rules.Rule
-	for _, r := range e.Rules {
-		if r.Name == ruleName {
-			rule = &r
-			break
-		}
-	}
-	if rule == nil {
-		return
-	}
 
 	// Find the correct position to insert the new rule
 	insertionIndex := sort.Search(len(existingRules), func(i int) bool {
