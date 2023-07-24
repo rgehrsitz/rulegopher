@@ -143,31 +143,33 @@ func (e *Engine) removeFromIndex(ruleName string) {
 // Evaluate is a method of the `Engine` struct and is responsible for evaluating the input fact against
 // the rules in the rule engine.
 func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
 	generatedEvents := make([]rules.Event, 0)
 	evaluatedRules := make(map[string]bool) // Keep track of evaluated rules
+
+	var matchingRules []*rules.Rule
 	for factName := range inputFact {
-		matchingRules, ok := e.RuleIndex[factName]
-		if ok {
-			for _, rule := range matchingRules {
-				if _, alreadyEvaluated := evaluatedRules[rule.Name]; !alreadyEvaluated {
-					// Create a copy of the rule before evaluating it
-					ruleCopy := *rule
-					satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts)
-					if err != nil {
-						return nil, err
-					}
-					if satisfied {
-						if e.ReportRuleName { // Check if the ReportRuleName option is enabled
-							ruleCopy.Event.RuleName = ruleCopy.Name // Set the RuleName field here
-						}
-						generatedEvents = append(generatedEvents, ruleCopy.Event)
-					}
-					evaluatedRules[rule.Name] = true
-				}
+		e.mu.RLock()
+		if rules, ok := e.RuleIndex[factName]; ok {
+			matchingRules = append(matchingRules, rules...)
+		}
+		e.mu.RUnlock()
+	}
+
+	for _, rule := range matchingRules {
+		if _, alreadyEvaluated := evaluatedRules[rule.Name]; !alreadyEvaluated {
+			// Create a copy of the rule before evaluating it
+			ruleCopy := *rule
+			satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts)
+			if err != nil {
+				return nil, err
 			}
+			if satisfied {
+				if e.ReportRuleName { // Check if the ReportRuleName option is enabled
+					ruleCopy.Event.RuleName = ruleCopy.Name // Set the RuleName field here
+				}
+				generatedEvents = append(generatedEvents, ruleCopy.Event)
+			}
+			evaluatedRules[rule.Name] = true
 		}
 	}
 
