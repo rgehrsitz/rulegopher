@@ -1021,3 +1021,96 @@ func TestEvaluateWithNestedConditions(t *testing.T) {
 		t.Fatalf("Expected event type 'Complex Weather Condition', got '%s'", events[0].EventType)
 	}
 }
+
+func TestEvaluateWithDeeplyNestedConditions(t *testing.T) {
+	engine := NewEngine()
+
+	// Define your deeply nested conditions
+	rule := rules.Rule{
+		Name:     "Deeply Nested Rule",
+		Priority: 1,
+		Conditions: rules.Conditions{
+			Any: []rules.Condition{
+				{
+					All: []rules.Condition{
+						{
+							Fact:     "temperature",
+							Operator: "greaterThan",
+							Value:    30,
+						},
+						{
+							Any: []rules.Condition{
+								{
+									Fact:     "humidity",
+									Operator: "lessThan",
+									Value:    70,
+								},
+								{
+									Fact:     "pressure",
+									Operator: "greaterThan",
+									Value:    1000,
+								},
+							},
+						},
+					},
+				},
+				{
+					All: []rules.Condition{
+						{
+							Fact:     "windSpeed",
+							Operator: "greaterThan",
+							Value:    10,
+						},
+						{
+							All: []rules.Condition{
+								{
+									Fact:     "rainfall",
+									Operator: "greaterThan",
+									Value:    20,
+								},
+								{
+									Fact:     "cloudCover",
+									Operator: "greaterThan",
+									Value:    50,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Event: rules.Event{
+			EventType: "Complex Weather Condition",
+		},
+	}
+
+	// Add the rule to the engine
+	err := engine.AddRule(rule)
+	if err != nil {
+		t.Fatalf("Failed to add deeply nested rule: %v", err)
+	}
+
+	// Define the facts that will be used for evaluation
+	fact := rules.Fact{
+		"temperature": 35,
+		"humidity":    65,
+		"pressure":    1010,
+		"windSpeed":   15,
+		"rainfall":    25,
+		"cloudCover":  60,
+	}
+
+	// Evaluate the rules with the facts
+	events, err := engine.Evaluate(fact)
+	if err != nil {
+		t.Fatalf("Failed to evaluate facts: %v", err)
+	}
+
+	// Check the result
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+	if events[0].EventType != "Complex Weather Condition" {
+		t.Fatalf("Expected event type 'Complex Weather Condition', got '%s'", events[0].EventType)
+	}
+}
