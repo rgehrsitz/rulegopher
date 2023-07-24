@@ -9,14 +9,6 @@ import (
 )
 
 // Rule represents a rule with a name, priority, conditions, and an event.
-// @property {string} Name - The Name property is a string that represents the name of the rule.
-// @property {int} Priority - Priority is an integer value that determines the order in which rules are
-// evaluated. Rules with higher priority values are evaluated before rules with lower priority values.
-// @property {Conditions} Conditions - Conditions is a struct that represents the conditions that need
-// to be met for the rule to be triggered. It contains properties such as "Field" (the field to be
-// checked), "Operator" (the comparison operator), and "Value" (the value to compare against).
-// @property {Event} Event - The `Event` property represents an event that triggers the rule. It could
-// be any kind of event, such as a user action, a system event, or a time-based event.
 type Rule struct {
 	Name       string     `json:"name"`
 	Priority   int        `json:"priority"`
@@ -25,18 +17,6 @@ type Rule struct {
 }
 
 // Event defines a struct type named "Event" with various fields and JSON tags.
-// @property {string} EventType - The EventType property is a string that represents the type of event.
-// It can be used to categorize different types of events.
-// @property CustomProperty - The `CustomProperty` field is of type `interface{}`. This means it can
-// hold values of any type. It is used to store custom properties or additional information related to
-// the event.
-// @property {[]string} Facts - Facts is a slice of strings that represents additional information or
-// data related to the event. It is optional and can be omitted if not needed.
-// @property {[]interface{}} Values - The `Values` property is an array of interface{} type, which
-// means it can hold values of any type. It is marked as `omitempty`, which means it will be omitted
-// from the JSON output if it is empty.
-// @property {string} RuleName - The `RuleName` property is a string that represents the name of the
-// rule associated with the event. It is an optional property and may be omitted if not applicable.
 type Event struct {
 	EventType      string        `json:"eventType"`
 	CustomProperty interface{}   `json:"customProperty"`
@@ -47,32 +27,12 @@ type Event struct {
 
 // Conditions is a struct that contains two arrays of Condition structs, one for all
 // conditions and one for any conditions.
-// @property {[]Condition} All - The "All" property is an array of conditions. It represents a set of
-// conditions that must all be true for a certain condition to be considered true. In other words, all
-// conditions in the "All" array must evaluate to true for the overall condition to be true.
-// @property {[]Condition} Any - The `Any` property is an array of `Condition` objects. It represents a
-// list of conditions where at least one of them must be true for the overall condition to be true.
 type Conditions struct {
 	All []Condition `json:"all"`
 	Any []Condition `json:"any"`
 }
 
 // Condition represents a condition with a fact, operator, value, and optional nested conditions.
-// @property {string} Fact - The "Fact" property represents the specific fact or attribute that the
-// condition is checking. It is a string that describes the fact being evaluated.
-// @property {string} Operator - The "Operator" property in the "Condition" struct represents the
-// comparison operator to be used in the condition. It specifies how the "Fact" property should be
-// compared to the "Value" property. Examples of operators include "=", ">", "<", ">=", "<=", "!=",
-// "in", "not
-// @property Value - The `Value` property is used to store the value that will be compared with the
-// fact using the specified operator. The type of the value can be any valid Go data type, such as
-// string, number, boolean, or even a custom struct.
-// @property {[]Condition} All - The `All` property is an array of `Condition` objects. It represents a
-// logical AND condition, where all the conditions in the array must be true for the overall condition
-// to be true.
-// @property {[]Condition} Any - The `Any` property is an array of `Condition` objects. It represents a
-// logical OR condition, where at least one of the conditions in the array must be true for the overall
-// condition to be true.
 type Condition struct {
 	Fact     string      `json:"fact,omitempty"`
 	Operator string      `json:"operator,omitempty"`
@@ -84,8 +44,7 @@ type Condition struct {
 // Fact is a map with string keys and interface{} values.
 type Fact map[string]interface{}
 
-// The line `const epsilon = 1e-9` is declaring a constant named `epsilon` with a value of `1e-9`. This
-// constant is used as a small value to determine if two floating-point numbers are almost equal. It is
+// Constant used as a small value to determine if two floating-point numbers are almost equal. It is
 // used in the `almostEqual` function to check if the absolute difference between two numbers is less
 // than or equal to `epsilon`.
 const epsilon = 1e-9
