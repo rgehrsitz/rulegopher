@@ -80,7 +80,7 @@ func (r *Rule) Validate() error {
 			continue
 		}
 		if _, ok := validOperators[condition.Operator]; !ok {
-			return fmt.Errorf("invalid operator: %s", condition.Operator)
+			return fmt.Errorf("invalid operator: %s for fact: %s", condition.Operator, condition.Fact)
 		}
 	}
 
@@ -90,7 +90,7 @@ func (r *Rule) Validate() error {
 			continue
 		}
 		if _, ok := validOperators[condition.Operator]; !ok {
-			return fmt.Errorf("invalid operator: %s", condition.Operator)
+			return fmt.Errorf("invalid operator: %s for fact: %s", condition.Operator, condition.Fact)
 		}
 	}
 
