@@ -49,10 +49,15 @@ type Fact map[string]interface{}
 // than or equal to `epsilon`.
 const epsilon = 1e-9
 
-// almostEqual checks if two floating-point numbers are almost equal within a certain
-// epsilon value.
+// almostEqual checks if two floating-point numbers are almost equal, considering both absolute and relative differences.
 func almostEqual(a, b float64) bool {
-	return math.Abs(a-b) <= epsilon
+	diff := math.Abs(a - b)
+	if diff <= epsilon {
+		// handle the case of small numbers
+		return true
+	}
+	// use relative error
+	return diff <= epsilon*math.Max(math.Abs(a), math.Abs(b))
 }
 
 // Validate is a method of the `Rule` struct. It is used to validate the operators used
