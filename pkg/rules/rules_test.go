@@ -421,3 +421,146 @@ func TestEvaluateWithInvalidFact(t *testing.T) {
 		t.Errorf("Expected an error due to invalid fact data type, but got none")
 	}
 }
+
+func TestConditionEvaluateDeeplyNested(t *testing.T) {
+	// Define a condition with deeply nested conditions
+	condition := Condition{
+		All: []Condition{
+			{
+				Fact:     "temperature",
+				Operator: "greaterThan",
+				Value:    30,
+				Any: []Condition{
+					{
+						Fact:     "humidity",
+						Operator: "lessThan",
+						Value:    0.5,
+						All: []Condition{
+							{
+								Fact:     "location",
+								Operator: "equal",
+								Value:    "indoors",
+							},
+							{
+								Fact:     "motionDetected",
+								Operator: "equal",
+								Value:    true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Define a fact where the condition should be true
+	factTrue := Fact{
+		"temperature":    40,
+		"humidity":       0.4,
+		"location":       "indoors",
+		"motionDetected": true,
+	}
+
+	// Define a fact where the condition should be false
+	factFalse := Fact{
+		"temperature":    20,
+		"humidity":       0.6,
+		"location":       "outdoors",
+		"motionDetected": false,
+	}
+
+	// Test the condition with the fact where it should be true
+	satisfied, _, _, err := condition.Evaluate(factTrue)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
+	if !satisfied {
+		t.Errorf("Expected condition to be true, but it was false")
+	}
+
+	// Test the condition with the fact where it should be false
+	satisfied, _, _, err = condition.Evaluate(factFalse)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
+	if satisfied {
+		t.Errorf("Expected condition to be false, but it was true")
+	}
+}
+
+func TestConditionEvaluateInvalidOperator(t *testing.T) {
+	// Define a condition with an invalid operator
+	condition := Condition{
+		Fact:     "temperature",
+		Operator: "invalidOperator",
+		Value:    30,
+	}
+
+	// Define a fact
+	fact := Fact{
+		"temperature": 40,
+	}
+
+	// Test the condition with the fact
+	_, _, _, err := condition.Evaluate(fact)
+	if err == nil {
+		t.Errorf("Expected an error due to invalid operator, but got none")
+	}
+}
+
+func TestConditionEvaluateUnexpectedValueType(t *testing.T) {
+	// Define a condition where the Value field is of an unexpected type
+	condition := Condition{
+		Fact:     "temperature",
+		Operator: "greaterThan",
+		Value:    "thirty", // string instead of a number
+	}
+
+	// Define a fact
+	fact := Fact{
+		"temperature": 40,
+	}
+
+	// Test the condition with the fact
+	_, _, _, err := condition.Evaluate(fact)
+	if err == nil {
+		t.Errorf("Expected an error due to unexpected value type, but got none")
+	}
+}
+
+func TestConditionEvaluateContainsOperatorWithSlice(t *testing.T) {
+	// Define a condition that uses the "contains" operator with a slice of strings
+	condition := Condition{
+		Fact:     "activities",
+		Operator: "contains",
+		Value:    "swimming",
+	}
+
+	// Define a fact where the condition should be true
+	factTrue := Fact{
+		"activities": []string{"running", "swimming", "cycling"},
+	}
+
+	// Define a fact where the condition should be false
+	factFalse := Fact{
+		"activities": []string{"running", "cycling"},
+	}
+
+	// Test the condition with the fact where it should be true
+	satisfied, _, _, err := condition.Evaluate(factTrue)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
+	if !satisfied {
+		t.Errorf("Expected condition to be true, but it was false")
+	}
+
+	// Test the condition with the fact where it should be false
+	satisfied, _, _, err = condition.Evaluate(factFalse)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
+	if satisfied {
+		t.Errorf("Expected condition to be false, but it was true")
+	}
+}
