@@ -134,6 +134,16 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 // Evaluate is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
 // parameter and evaluates the condition against the given fact.
 func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, error) {
+	if len(condition.All) > 0 || len(condition.Any) > 0 {
+		return condition.evaluateNestedConditions(fact)
+	}
+
+	return condition.evaluateSimpleCondition(fact)
+}
+
+// evaluateSimpleCondition evaluates a simple condition (i.e., a condition without nested conditions)
+// and returns whether the condition is satisfied, along with the corresponding fact and value.
+func (condition *Condition) evaluateSimpleCondition(fact Fact) (bool, []string, []interface{}, error) {
 	validOperators := map[string]bool{
 		"equal":              true,
 		"notEqual":           true,
@@ -143,27 +153,6 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 		"lessThanOrEqual":    true,
 		"contains":           true,
 		"notContains":        true,
-	}
-
-	if len(condition.All) > 0 {
-		satisfied, facts, values, err := evaluateConditions(condition.All, fact)
-		if err != nil {
-			return false, nil, nil, err
-		}
-		if !satisfied {
-			return false, nil, nil, nil
-		}
-		return true, facts, values, nil
-	}
-
-	if len(condition.Any) > 0 {
-		satisfied, facts, values, err := evaluateConditions(condition.Any, fact)
-		if err != nil {
-			return false, nil, nil, err
-		}
-		if satisfied {
-			return true, facts, values, nil
-		}
 	}
 
 	if _, ok := validOperators[condition.Operator]; !ok {
@@ -254,6 +243,28 @@ func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, 
 		if satisfied {
 			return true, facts, values, nil
 		}
+	}
+
+	return false, nil, nil, nil
+}
+
+// evaluateNestedConditions evaluates nested conditions and returns whether any conditions
+// are satisfied, along with the corresponding facts and values.
+func (condition *Condition) evaluateNestedConditions(fact Fact) (bool, []string, []interface{}, error) {
+	satisfied, facts, values, err := evaluateConditions(condition.All, fact)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	if satisfied {
+		return true, facts, values, nil
+	}
+
+	satisfied, facts, values, err = evaluateConditions(condition.Any, fact)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	if satisfied {
+		return true, facts, values, nil
 	}
 
 	return false, nil, nil, nil
