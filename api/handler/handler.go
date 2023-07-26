@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/rgehrsitz/rulegopher/pkg/engine"
@@ -70,17 +71,27 @@ func (h *Handler) RemoveRule(w http.ResponseWriter, r *http.Request) {
 // fact by decoding the fact data from the request body, handling the fact using the `factHandler`
 // instance, and encoding the resulting events as a JSON response.
 func (h *Handler) EvaluateFact(w http.ResponseWriter, r *http.Request) {
+
 	var fact rules.Fact
 	err := json.NewDecoder(r.Body).Decode(&fact)
-	if err != nil || len(fact) == 0 {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
-	}
-	events, err := h.factHandler.HandleFact(fact)
+
 	if err != nil {
-		http.Error(w, "Error evaluating fact", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error decoding fact: %v", err), http.StatusBadRequest)
 		return
 	}
+
+	if len(fact) == 0 {
+		http.Error(w, fmt.Sprintf("Invalid fact: %v", fact), http.StatusBadRequest)
+		return
+	}
+
+	events, err := h.factHandler.HandleFact(fact)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error evaluating fact %v: %v", fact, err), http.StatusInternalServerError)
+		return
+	}
+
 	json.NewEncoder(w).Encode(events)
 }
 
