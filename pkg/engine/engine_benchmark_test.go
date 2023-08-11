@@ -214,3 +214,46 @@ func readFile(filename string) string {
 	}
 	return string(content)
 }
+
+func BenchmarkOperators(b *testing.B) {
+	engine := engine.NewEngine()
+	fact := rules.Fact{"temperature": 25}
+
+	operators := []string{"greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual", "equal", "notEqual"}
+	for _, op := range operators {
+		ruleName := "TestRule_" + op // Unique name for each rule
+		rule := rules.Rule{
+			Name:     ruleName,
+			Priority: 1,
+			Conditions: rules.Conditions{
+				All: []rules.Condition{
+					{
+						Fact:     "temperature",
+						Operator: op,
+						Value:    10,
+					},
+				},
+			},
+			Event: rules.Event{EventType: "alert"},
+		}
+		err := engine.AddRule(rule)
+		if err != nil {
+			b.Fatalf("Failed to add rule: %v", err)
+		}
+
+		b.Run("Operator: "+op, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_, err := engine.Evaluate(fact)
+				if err != nil {
+					b.Fatalf("Failed to evaluate fact: %v", err)
+				}
+			}
+		})
+
+		// Optionally, remove the rule after benchmarking if needed
+		err = engine.RemoveRule(ruleName)
+		if err != nil {
+			b.Fatalf("Failed to remove rule: %v", err)
+		}
+	}
+}
