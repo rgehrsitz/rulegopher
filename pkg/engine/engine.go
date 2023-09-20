@@ -11,23 +11,28 @@ import (
 
 // Engine represents a rule engine.
 type Engine struct {
-	Rules          map[string]rules.Rule
-	RuleIndex      map[string][]*rules.Rule
-	mu             sync.RWMutex
-	ReportFacts    bool
-	ReportRuleName bool
+	Rules                 map[string]rules.Rule
+	RuleIndex             map[string][]*rules.Rule
+	mu                    sync.RWMutex
+	ReportFacts           bool
+	ReportRuleName        bool
+	UnmatchedFactBehavior string
 }
 
 // NewEngine returns a new instance of the Engine struct with initialized maps.
 func NewEngine() *Engine {
 	return &Engine{
-		Rules:          make(map[string]rules.Rule),
-		RuleIndex:      make(map[string][]*rules.Rule),
-		ReportFacts:    false,
-		ReportRuleName: false,
+		Rules:                 make(map[string]rules.Rule),
+		RuleIndex:             make(map[string][]*rules.Rule),
+		ReportFacts:           false,
+		ReportRuleName:        false,
+		UnmatchedFactBehavior: "Ignore",
 	}
 }
 
+// AddRule adds a rule to the Engine.
+//
+// It takes a rule of type rules.Rule as a parameter and returns an error.
 func (e *Engine) AddRule(rule rules.Rule) error {
 	if err := e.validateRule(rule); err != nil {
 		return err
@@ -43,6 +48,13 @@ func (e *Engine) AddRule(rule rules.Rule) error {
 	return nil
 }
 
+// validateRule validates a rule in the Engine.
+//
+// It takes a rule as a parameter and checks if the rule name is empty.
+// If the rule name is empty, it returns an error message.
+// It also checks if the rule conditions are nil.
+// If the rule conditions are nil, it returns an error message.
+// Finally, it calls the Validate method of the rule and returns its result.
 func (e *Engine) validateRule(rule rules.Rule) error {
 	if rule.Name == "" {
 		return fmt.Errorf("rule name cannot be empty")
@@ -55,11 +67,21 @@ func (e *Engine) validateRule(rule rules.Rule) error {
 	return rule.Validate()
 }
 
+// ruleExists checks if a rule with the given name exists in the engine.
+//
+// Parameters:
+// - ruleName: the name of the rule to check.
+//
+// Returns:
+// - bool: true if the rule exists, false otherwise.
 func (e *Engine) ruleExists(ruleName string) bool {
 	_, exists := e.Rules[ruleName]
 	return exists
 }
 
+// addRuleToEngine adds a rule to the Engine.
+//
+// It takes in a rule of type rules.Rule as a parameter and does not return anything.
 func (e *Engine) addRuleToEngine(rule rules.Rule) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

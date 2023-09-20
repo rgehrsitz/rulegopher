@@ -23,6 +23,7 @@ func main() {
 	rulesFile := flag.String("rules", "", "JSON file containing the rules")
 	reportFacts := flag.Bool("reportFacts", false, "whether to report the facts that caused the event to trigger")
 	reportRuleName := flag.Bool("reportRuleName", true, "whether to report the name of the rule that was triggered")
+	unmatchedFactBehavior := flag.String("unmatchedFactBehavior", "Ignore", "behavior for unmatched facts: Ignore, Log, or Error")
 
 	flag.Parse()
 
@@ -30,6 +31,7 @@ func main() {
 	rulesEngine := engine.NewEngine()
 	rulesEngine.ReportFacts = *reportFacts
 	rulesEngine.ReportRuleName = *reportRuleName
+	rulesEngine.UnmatchedFactBehavior = *unmatchedFactBehavior
 	factHandler := facts.NewFactHandler(rulesEngine)
 
 	// This block of code is responsible for reading and decoding the rules from a JSON file, and then

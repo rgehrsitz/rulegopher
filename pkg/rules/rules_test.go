@@ -528,6 +528,15 @@ func TestConditionEvaluateUnexpectedValueType(t *testing.T) {
 	}
 }
 
+// TestConditionEvaluateContainsOperatorWithSlice tests the evaluation of a condition using the "contains" operator with a slice of strings.
+//
+// It defines a condition that checks if the "activities" fact contains the value "swimming". It then defines two facts, one where the condition should be true and another where it should be false. It evaluates the condition with both facts and verifies the expected results.
+//
+// Parameters:
+// - t: the testing.T instance used for testing.
+//
+// Returns:
+// - None.
 func TestConditionEvaluateContainsOperatorWithSlice(t *testing.T) {
 	// Define a condition that uses the "contains" operator with a slice of strings
 	condition := Condition{
@@ -562,5 +571,117 @@ func TestConditionEvaluateContainsOperatorWithSlice(t *testing.T) {
 	}
 	if satisfied {
 		t.Errorf("Expected condition to be false, but it was true")
+	}
+}
+
+// TestConditionEvaluateBoundary tests the evaluation of a condition at the boundary.
+//
+// This function initializes a condition with a fact and tests the evaluation of the condition
+// with a fact exactly at the boundary. It checks if the condition is satisfied and if there
+// are any errors. If the condition is satisfied, it fails the test and reports an error.
+// The function does not return any values.
+func TestConditionEvaluateBoundary(t *testing.T) {
+	// Define a condition
+	condition := Condition{
+		Fact:     "temperature",
+		Operator: "greaterThan",
+		Value:    30,
+	}
+
+	// Define a fact exactly at the boundary
+	factBoundary := Fact{
+		"temperature": 30,
+	}
+
+	// Test the condition with the boundary fact
+	satisfied, _, _, err := condition.Evaluate(factBoundary)
+	if err != nil {
+		t.Fatalf("Error evaluating condition: %v", err)
+	}
+	if satisfied {
+		t.Errorf("Expected condition to be false at boundary, but it was true")
+	}
+}
+
+func TestConditionEvaluateInvalidFactType(t *testing.T) {
+	condition := Condition{
+		Fact:     "temperature",
+		Operator: "greaterThan",
+		Value:    30,
+	}
+
+	// Passing a string instead of an integer
+	factInvalid := Fact{
+		"temperature": "hot",
+	}
+
+	_, _, _, err := condition.Evaluate(factInvalid)
+	if err == nil {
+		t.Errorf("Expected an error due to invalid fact type, but got none")
+	}
+}
+
+func TestConditionEvaluateMissingFact(t *testing.T) {
+	condition := Condition{
+		Fact:     "humidity",
+		Operator: "lessThan",
+		Value:    50,
+	}
+
+	// Fact "humidity" is missing
+	factMissing := Fact{
+		"temperature": 35,
+	}
+
+	_, _, _, err := condition.Evaluate(factMissing)
+	if err == nil {
+		t.Errorf("Expected an error due to missing fact, but got none")
+	}
+}
+
+func TestRuleEvaluateComplexNested(t *testing.T) {
+	rule := Rule{
+		Name:     "TestRule",
+		Priority: 1,
+		Conditions: Conditions{
+			All: []Condition{
+				{
+					Any: []Condition{
+						{
+							Fact:     "temperature",
+							Operator: "greaterThan",
+							Value:    30,
+						},
+						{
+							Fact:     "humidity",
+							Operator: "lessThan",
+							Value:    50,
+						},
+					},
+				},
+				{
+					All: []Condition{
+						{
+							Fact:     "windSpeed",
+							Operator: "equalTo",
+							Value:    10,
+						},
+					},
+				},
+			},
+		}}
+
+	fact := Fact{
+		"temperature": 35,
+		"humidity":    45,
+		"windSpeed":   10,
+	}
+
+	satisfied, err := rule.Evaluate(fact, true)
+	if err != nil {
+		t.Fatalf("Error evaluating rule: %v", err)
+	}
+	if !satisfied {
+		t.Errorf("Expected rule to be true, but it was false")
 	}
 }
