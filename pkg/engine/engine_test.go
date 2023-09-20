@@ -516,6 +516,13 @@ func TestRemoveRuleWithMultipleRules(t *testing.T) {
 	}
 }
 
+// TestEvaluateWithReportFacts is a unit test for the EvaluateWithReportFacts function.
+//
+// It creates a new engine and enables the ReportFacts option.
+// Then it defines a rule with a condition and an event.
+// The rule is added to the engine and a fact is defined.
+// The fact is evaluated using the engine, and the resulting events are checked.
+// Finally, the function asserts that the event includes the triggering fact and its value.
 func TestEvaluateWithReportFacts(t *testing.T) {
 	// Create a new engine
 	engine := NewEngine()

@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -27,33 +28,42 @@ func NewEngine() *Engine {
 	}
 }
 
-// AddRule adds a new rule to the rule engine.
 func (e *Engine) AddRule(rule rules.Rule) error {
-	if rule.Name == "" {
-		return &EmptyRuleNameError{}
-	}
-
-	if err := rule.Validate(); err != nil {
+	if err := e.validateRule(rule); err != nil {
 		return err
 	}
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	if rule.Conditions.All == nil && rule.Conditions.Any == nil {
-		return &NilRuleConditionsError{RuleName: rule.Name}
+	if e.ruleExists(rule.Name) {
+		return &RuleAlreadyExistsError{RuleName: rule.Name}
 	}
 
-	for _, existingRule := range e.Rules {
-		if existingRule.Name == rule.Name {
-			return &RuleAlreadyExistsError{RuleName: rule.Name}
-		}
-	}
-
-	e.Rules[rule.Name] = rule
+	e.addRuleToEngine(rule)
 	e.addToIndex(&rule)
 
 	return nil
+}
+
+func (e *Engine) validateRule(rule rules.Rule) error {
+	if rule.Name == "" {
+		return fmt.Errorf("rule name cannot be empty")
+	}
+
+	if rule.Conditions.All == nil && rule.Conditions.Any == nil {
+		return fmt.Errorf("rule conditions cannot be nil for rule: %s", rule.Name)
+	}
+
+	return rule.Validate()
+}
+
+func (e *Engine) ruleExists(ruleName string) bool {
+	_, exists := e.Rules[ruleName]
+	return exists
+}
+
+func (e *Engine) addRuleToEngine(rule rules.Rule) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.Rules[rule.Name] = rule
 }
 
 // addToIndex adds a rule to the rule index.
