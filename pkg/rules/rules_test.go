@@ -4,6 +4,12 @@ import (
 	"testing"
 )
 
+// TestConditionEvaluate tests the Evaluate function of the Condition struct.
+//
+// It defines a condition with a specific fact, operator, and value.
+// It also defines two facts, one where the condition should be true and one where it should be false.
+// The function tests the condition with both facts and verifies the expected results.
+// It reports any error encountered during the evaluation.
 func TestConditionEvaluate(t *testing.T) {
 	// Define a condition
 	condition := Condition{
@@ -23,7 +29,7 @@ func TestConditionEvaluate(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be true
-	satisfied, _, _, err := condition.Evaluate(factTrue)
+	satisfied, _, _, err := condition.Evaluate(factTrue, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -32,7 +38,7 @@ func TestConditionEvaluate(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be false
-	satisfied, _, _, err = condition.Evaluate(factFalse)
+	satisfied, _, _, err = condition.Evaluate(factFalse, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -84,7 +90,7 @@ func TestConditionEvaluate2(t *testing.T) {
 
 	// Test each condition with the fact where it should be true
 	for _, condition := range conditions {
-		satisfied, _, _, err := condition.Evaluate(factTrue)
+		satisfied, _, _, err := condition.Evaluate(factTrue, "Ignore")
 		if err != nil {
 			t.Fatalf("Error evaluating condition: %v", err)
 		}
@@ -95,7 +101,7 @@ func TestConditionEvaluate2(t *testing.T) {
 
 	// Test each condition with the fact where it should be false
 	for _, condition := range conditions {
-		satisfied, _, _, err := condition.Evaluate(factFalse)
+		satisfied, _, _, err := condition.Evaluate(factFalse, "Ignore")
 		if err != nil {
 			t.Fatalf("Error evaluating condition: %v", err)
 		}
@@ -159,7 +165,7 @@ func TestRuleEvaluate3(t *testing.T) {
 	}
 
 	// Test the rule with the fact where it should be satisfied
-	satisfied, err := rule.Evaluate(factTrue, true)
+	satisfied, err := rule.Evaluate(factTrue, true, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating rule: %v", err)
 	}
@@ -169,7 +175,7 @@ func TestRuleEvaluate3(t *testing.T) {
 
 	// Test the rule with the fact where it should not be satisfied
 
-	satisfied, err = rule.Evaluate(factFalse, true)
+	satisfied, err = rule.Evaluate(factFalse, true, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating rule: %v", err)
 	}
@@ -236,7 +242,7 @@ func TestRuleEvaluateComplex(t *testing.T) {
 	}
 
 	// Test the rule with the fact where it should be satisfied
-	satisfied, err := rule.Evaluate(factTrue, true)
+	satisfied, err := rule.Evaluate(factTrue, true, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating rule: %v", err)
 	}
@@ -246,7 +252,7 @@ func TestRuleEvaluateComplex(t *testing.T) {
 
 	// Test the rule with the fact where it should not be satisfied
 
-	satisfied, err = rule.Evaluate(factFalse, true)
+	satisfied, err = rule.Evaluate(factFalse, true, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating rule: %v", err)
 	}
@@ -310,7 +316,7 @@ func TestConditionEvaluateWithDifferentOperators(t *testing.T) {
 
 	// Test each condition with the fact
 	for _, condition := range conditions {
-		satisfied, _, _, err := condition.Evaluate(fact)
+		satisfied, _, _, err := condition.Evaluate(fact, "Ignore")
 		if err != nil {
 			t.Fatalf("Error evaluating condition: %v", err)
 		}
@@ -355,7 +361,7 @@ func TestConditionEvaluateWithDifferentValueTypes(t *testing.T) {
 
 	// Test each condition with the fact
 	for _, condition := range conditions {
-		satisfied, _, _, err := condition.Evaluate(fact)
+		satisfied, _, _, err := condition.Evaluate(fact, "Ignore")
 		if err != nil {
 			t.Fatalf("Error evaluating condition: %v", err)
 		}
@@ -381,7 +387,7 @@ func TestConditionEvaluateWithMissingFact(t *testing.T) {
 	}
 
 	// Test the condition with the fact
-	satisfied, _, _, err := condition.Evaluate(fact)
+	satisfied, _, _, err := condition.Evaluate(fact, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -416,7 +422,7 @@ func TestEvaluateWithInvalidFact(t *testing.T) {
 	}
 
 	// Test the rule with the fact
-	_, err := rule.Evaluate(fact, true)
+	_, err := rule.Evaluate(fact, true, "Ignore")
 	if err == nil {
 		t.Errorf("Expected an error due to invalid fact data type, but got none")
 	}
@@ -470,7 +476,7 @@ func TestConditionEvaluateDeeplyNested(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be true
-	satisfied, _, _, err := condition.Evaluate(factTrue)
+	satisfied, _, _, err := condition.Evaluate(factTrue, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -479,7 +485,7 @@ func TestConditionEvaluateDeeplyNested(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be false
-	satisfied, _, _, err = condition.Evaluate(factFalse)
+	satisfied, _, _, err = condition.Evaluate(factFalse, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -502,7 +508,7 @@ func TestConditionEvaluateInvalidOperator(t *testing.T) {
 	}
 
 	// Test the condition with the fact
-	_, _, _, err := condition.Evaluate(fact)
+	_, _, _, err := condition.Evaluate(fact, "Ignore")
 	if err == nil {
 		t.Errorf("Expected an error due to invalid operator, but got none")
 	}
@@ -522,7 +528,7 @@ func TestConditionEvaluateUnexpectedValueType(t *testing.T) {
 	}
 
 	// Test the condition with the fact
-	_, _, _, err := condition.Evaluate(fact)
+	_, _, _, err := condition.Evaluate(fact, "Ignore")
 	if err == nil {
 		t.Errorf("Expected an error due to unexpected value type, but got none")
 	}
@@ -556,7 +562,7 @@ func TestConditionEvaluateContainsOperatorWithSlice(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be true
-	satisfied, _, _, err := condition.Evaluate(factTrue)
+	satisfied, _, _, err := condition.Evaluate(factTrue, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -565,7 +571,7 @@ func TestConditionEvaluateContainsOperatorWithSlice(t *testing.T) {
 	}
 
 	// Test the condition with the fact where it should be false
-	satisfied, _, _, err = condition.Evaluate(factFalse)
+	satisfied, _, _, err = condition.Evaluate(factFalse, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -594,7 +600,7 @@ func TestConditionEvaluateBoundary(t *testing.T) {
 	}
 
 	// Test the condition with the boundary fact
-	satisfied, _, _, err := condition.Evaluate(factBoundary)
+	satisfied, _, _, err := condition.Evaluate(factBoundary, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating condition: %v", err)
 	}
@@ -615,7 +621,7 @@ func TestConditionEvaluateInvalidFactType(t *testing.T) {
 		"temperature": "hot",
 	}
 
-	_, _, _, err := condition.Evaluate(factInvalid)
+	_, _, _, err := condition.Evaluate(factInvalid, "Ignore")
 	if err == nil {
 		t.Errorf("Expected an error due to invalid fact type, but got none")
 	}
@@ -633,7 +639,7 @@ func TestConditionEvaluateMissingFact(t *testing.T) {
 		"temperature": 35,
 	}
 
-	_, _, _, err := condition.Evaluate(factMissing)
+	_, _, _, err := condition.Evaluate(factMissing, "Error")
 	if err == nil {
 		t.Errorf("Expected an error due to missing fact, but got none")
 	}
@@ -677,7 +683,7 @@ func TestRuleEvaluateComplexNested(t *testing.T) {
 		"windSpeed":   10,
 	}
 
-	satisfied, err := rule.Evaluate(fact, true)
+	satisfied, err := rule.Evaluate(fact, true, "Ignore")
 	if err != nil {
 		t.Fatalf("Error evaluating rule: %v", err)
 	}

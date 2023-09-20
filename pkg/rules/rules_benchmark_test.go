@@ -19,7 +19,7 @@ func BenchmarkRuleEvaluateAnyConditions(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = rule.Evaluate(fact, true)
+		_, _ = rule.Evaluate(fact, true, "Ignore")
 	}
 }
 
@@ -38,7 +38,7 @@ func BenchmarkRuleEvaluateAllConditions(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = rule.Evaluate(fact, true)
+		_, _ = rule.Evaluate(fact, true, "Ignore")
 	}
 }
 
@@ -61,7 +61,7 @@ func BenchmarkRuleEvaluateMixedConditions(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = rule.Evaluate(fact, true)
+		_, _ = rule.Evaluate(fact, true, "Ignore")
 	}
 }
 
@@ -76,7 +76,7 @@ func BenchmarkEvaluateAllConditions(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _, _ = evaluateConditions(conditions, fact)
+		_, _, _, _ = evaluateConditions(conditions, fact, "Ignore")
 	}
 }
 
@@ -91,7 +91,7 @@ func BenchmarkEvaluateAnyConditions(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _, _ = evaluateConditions(conditions, fact)
+		_, _, _, _ = evaluateConditions(conditions, fact, "Ignore")
 	}
 }
 
@@ -109,6 +109,6 @@ func BenchmarkEvaluateMixedConditions(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _, _ = evaluateConditions(conditions, fact)
+		_, _, _, _ = evaluateConditions(conditions, fact, "Ignore")
 	}
 }

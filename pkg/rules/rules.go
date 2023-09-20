@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"reflect"
 	"strconv"
@@ -99,8 +100,8 @@ func (r *Rule) Validate() error {
 
 // Evaluate is a method of the `Rule` struct. It takes a `fact` of type `Fact` and a
 // boolean `includeTriggeringFact` as parameters.
-func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
-	allSatisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact)
+func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool, unmatchedFactBehavior string) (bool, error) {
+	allSatisfied, facts, values, err := evaluateConditions(r.Conditions.All, fact, unmatchedFactBehavior)
 	if err != nil {
 		return false, err
 	}
@@ -114,7 +115,7 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 		r.Event = event
 	}
 
-	anySatisfied, facts, values, err := evaluateConditions(r.Conditions.Any, fact)
+	anySatisfied, facts, values, err := evaluateConditions(r.Conditions.Any, fact, unmatchedFactBehavior)
 	if err != nil {
 		return false, err
 	}
@@ -133,17 +134,17 @@ func (r *Rule) Evaluate(fact Fact, includeTriggeringFact bool) (bool, error) {
 
 // Evaluate is a method of the `Condition` struct. It takes a `fact` of type `Fact` as a
 // parameter and evaluates the condition against the given fact.
-func (condition *Condition) Evaluate(fact Fact) (bool, []string, []interface{}, error) {
+func (condition *Condition) Evaluate(fact Fact, unmatchedFactBehavior string) (bool, []string, []interface{}, error) {
 	if len(condition.All) > 0 || len(condition.Any) > 0 {
-		return condition.evaluateNestedConditions(fact)
+		return condition.evaluateNestedConditions(fact, unmatchedFactBehavior)
 	}
 
-	return condition.evaluateSimpleCondition(fact)
+	return condition.evaluateSimpleCondition(fact, unmatchedFactBehavior)
 }
 
 // evaluateSimpleCondition evaluates a simple condition (i.e., a condition without nested conditions)
 // and returns whether the condition is satisfied, along with the corresponding fact and value.
-func (condition *Condition) evaluateSimpleCondition(fact Fact) (bool, []string, []interface{}, error) {
+func (condition *Condition) evaluateSimpleCondition(fact Fact, unmatchedFactBehavior string) (bool, []string, []interface{}, error) {
 	validOperators := map[string]bool{
 		"equal":              true,
 		"notEqual":           true,
@@ -162,7 +163,17 @@ func (condition *Condition) evaluateSimpleCondition(fact Fact) (bool, []string, 
 	if condition.Fact != "" && condition.Operator != "" {
 		factValue, ok := fact[condition.Fact]
 		if !ok {
-			return false, nil, nil, nil
+			switch unmatchedFactBehavior {
+			case "Ignore":
+				return false, nil, nil, nil
+			case "Log":
+				log.Printf("Unmatched fact: %s", condition.Fact)
+				return false, nil, nil, nil
+			case "Error":
+				return false, nil, nil, fmt.Errorf("unmatched fact: %s", condition.Fact)
+			default:
+				return false, nil, nil, nil
+			}
 		}
 
 		switch condition.Operator {
@@ -226,7 +237,7 @@ func (condition *Condition) evaluateSimpleCondition(fact Fact) (bool, []string, 
 	}
 
 	if len(condition.All) > 0 {
-		satisfied, facts, values, err := evaluateConditions(condition.All, fact)
+		satisfied, facts, values, err := evaluateConditions(condition.All, fact, unmatchedFactBehavior)
 		if err != nil {
 			return false, nil, nil, err
 		}
@@ -236,7 +247,7 @@ func (condition *Condition) evaluateSimpleCondition(fact Fact) (bool, []string, 
 	}
 
 	if len(condition.Any) > 0 {
-		satisfied, facts, values, err := evaluateConditions(condition.Any, fact)
+		satisfied, facts, values, err := evaluateConditions(condition.Any, fact, unmatchedFactBehavior)
 		if err != nil {
 			return false, nil, nil, err
 		}
@@ -250,8 +261,8 @@ func (condition *Condition) evaluateSimpleCondition(fact Fact) (bool, []string, 
 
 // evaluateNestedConditions evaluates nested conditions and returns whether any conditions
 // are satisfied, along with the corresponding facts and values.
-func (condition *Condition) evaluateNestedConditions(fact Fact) (bool, []string, []interface{}, error) {
-	satisfied, facts, values, err := evaluateConditions(condition.All, fact)
+func (condition *Condition) evaluateNestedConditions(fact Fact, unmatchedFactBehavior string) (bool, []string, []interface{}, error) {
+	satisfied, facts, values, err := evaluateConditions(condition.All, fact, unmatchedFactBehavior)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -259,7 +270,7 @@ func (condition *Condition) evaluateNestedConditions(fact Fact) (bool, []string,
 		return true, facts, values, nil
 	}
 
-	satisfied, facts, values, err = evaluateConditions(condition.Any, fact)
+	satisfied, facts, values, err = evaluateConditions(condition.Any, fact, unmatchedFactBehavior)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -301,12 +312,12 @@ func contains(slice []string, str string) bool {
 
 // evaluateConditions evaluates a list of conditions against a given fact and returns whether any conditions
 // are satisfied, along with the corresponding facts and values.
-func evaluateConditions(conditions []Condition, fact Fact) (bool, []string, []interface{}, error) {
+func evaluateConditions(conditions []Condition, fact Fact, unmatchedFactBehavior string) (bool, []string, []interface{}, error) {
 	var facts []string
 	var values []interface{}
 
 	for _, condition := range conditions {
-		satisfied, fact, value, err := condition.Evaluate(fact)
+		satisfied, fact, value, err := condition.Evaluate(fact, unmatchedFactBehavior)
 		if err != nil {
 			return false, nil, nil, err
 		}

@@ -170,7 +170,7 @@ func (e *Engine) Evaluate(inputFact rules.Fact) ([]rules.Event, error) {
 		if _, alreadyEvaluated := evaluatedRules[rule.Name]; !alreadyEvaluated {
 			// Create a copy of the rule before evaluating it
 			ruleCopy := *rule
-			satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts)
+			satisfied, err := ruleCopy.Evaluate(inputFact, e.ReportFacts, e.UnmatchedFactBehavior)
 			if err != nil {
 				result = multierror.Append(result, err)
 				continue
