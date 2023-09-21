@@ -609,6 +609,12 @@ func TestConditionEvaluateBoundary(t *testing.T) {
 	}
 }
 
+// TestConditionEvaluateInvalidFactType tests the evaluation of a condition with an invalid fact type.
+
+// It creates a Condition struct with a specific Fact, Operator, and Value.
+// It then creates an invalid Fact with a string value instead of an integer.
+// The function calls the Evaluate method of the Condition, passing in the invalid Fact and a string value.
+// It expects an error to be returned, indicating that the fact type is invalid.
 func TestConditionEvaluateInvalidFactType(t *testing.T) {
 	condition := Condition{
 		Fact:     "temperature",
@@ -626,6 +632,10 @@ func TestConditionEvaluateInvalidFactType(t *testing.T) {
 		t.Errorf("Expected an error due to invalid fact type, but got none")
 	}
 }
+
+// TestConditionEvaluateMissingFact is a test function that evaluates a condition
+// when a fact is missing. It checks if an error is returned when a required
+// fact is not present in the given fact set.
 
 func TestConditionEvaluateMissingFact(t *testing.T) {
 	condition := Condition{
@@ -645,6 +655,11 @@ func TestConditionEvaluateMissingFact(t *testing.T) {
 	}
 }
 
+// TestRuleEvaluateComplexNested is a test function that evaluates a complex nested rule.
+//
+// It creates a rule with multiple conditions and facts, and then evaluates the rule
+// using a provided set of facts. It expects the rule to be satisfied, and if not,
+// it fails the test.
 func TestRuleEvaluateComplexNested(t *testing.T) {
 	rule := Rule{
 		Name:     "TestRule",
@@ -689,5 +704,243 @@ func TestRuleEvaluateComplexNested(t *testing.T) {
 	}
 	if !satisfied {
 		t.Errorf("Expected rule to be true, but it was false")
+	}
+}
+
+func TestEvaluateSimpleCondition(t *testing.T) {
+	condition := Condition{
+		Fact:     "age",
+		Operator: "greaterThan",
+		Value:    25,
+	}
+	fact := Fact{
+		"age": 30,
+	}
+
+	result, _, _, err := condition.evaluateSimpleCondition(fact, "Ignore")
+	if err != nil {
+		t.Errorf("Error evaluating condition: %v", err)
+	}
+	if !result {
+		t.Errorf("Expected condition to be true, but got false")
+	}
+}
+
+// TestEvaluateNestedConditions is a test function for evaluating nested conditions.
+func TestEvaluateNestedConditions(t *testing.T) {
+	condition := Condition{
+		All: []Condition{
+			{
+				Fact:     "age",
+				Operator: "greaterThan",
+				Value:    25,
+			},
+			{
+				Fact:     "country",
+				Operator: "equal",
+				Value:    "USA",
+			},
+		},
+		Any: []Condition{
+			{
+				Fact:     "status",
+				Operator: "equal",
+				Value:    "active",
+			},
+			{
+				Fact:     "type",
+				Operator: "notEqual",
+				Value:    "admin",
+			},
+		},
+	}
+	fact := Fact{
+		"age":     30,
+		"country": "USA",
+		"status":  "inactive",
+		"type":    "user",
+	}
+
+	result, _, _, err := condition.evaluateNestedConditions(fact, "Ignore")
+	if err != nil {
+		t.Errorf("Error evaluating condition: %v", err)
+	}
+	if !result {
+		t.Errorf("Expected condition to be true, but got false")
+	}
+}
+
+// TestUnmatchedFactsBehavior tests the behavior of unmatched facts in the Condition.Evaluate function.
+//
+// It evaluates the condition with a given fact and behavior, and checks the result and error.
+// It tests for both "Ignore" and "Error" behaviors.
+// The function returns nothing.
+func TestUnmatchedFactsBehavior(t *testing.T) {
+	condition := Condition{
+		Fact:     "city",
+		Operator: "equal",
+		Value:    "Seattle",
+	}
+	fact := Fact{
+		"age": 30,
+	}
+
+	// Test for "Ignore" behavior
+	result, _, _, err := condition.Evaluate(fact, "Ignore")
+	if err != nil {
+		t.Errorf("Error evaluating condition: %v", err)
+	}
+	if result {
+		t.Errorf("Expected condition to be false for Ignore behavior, but got true")
+	}
+
+	// Test for "Error" behavior
+	_, _, _, err = condition.Evaluate(fact, "Error")
+	if err == nil {
+		t.Errorf("Expected an error for unmatched fact with Error behavior, but got none")
+	}
+}
+
+// TestConvertToFloat64 is a unit test function that tests the convertToFloat64 function.
+//
+// The function takes an input value of type interface{} and converts it to a float64 value.
+// It also checks if there is an error during the conversion process.
+// The function returns the converted float64 value and an error if any.
+func TestConvertToFloat64(t *testing.T) {
+	tests := []struct {
+		input  interface{}
+		output float64
+		err    bool
+	}{
+		{25, 25.0, false},
+		{"30.5", 30.5, false},
+		{"invalid", 0, true},
+	}
+
+	for _, test := range tests {
+		result, _, err := convertToFloat64(test.input)
+		if (err != nil) != test.err {
+			t.Errorf("Expected error: %v, but got: %v", test.err, err)
+		}
+		if result != test.output {
+			t.Errorf("Expected output: %f, but got: %f", test.output, result)
+		}
+	}
+}
+
+func TestAlmostEqualRelativeError(t *testing.T) {
+	a := 1e10
+	b := a + (epsilon * a / 2) // This will ensure the relative difference is less than epsilon
+	if !almostEqual(a, b) {
+		t.Errorf("Expected numbers to be almost equal, but they are not")
+	}
+}
+
+// TestValidateRule is a unit test for the ValidateRule function.
+//
+// It tests the validation of a rule by setting up a Rule struct with invalid conditions.
+// It expects an error to be returned from the Validate function.
+func TestValidateRule(t *testing.T) {
+	rule := Rule{
+		Name: "testRule",
+		Conditions: Conditions{
+			All: []Condition{
+				{
+					Fact:     "age",
+					Operator: "invalidOperator",
+					Value:    25,
+				},
+			},
+		},
+	}
+
+	err := rule.Validate()
+	if err == nil {
+		t.Errorf("Expected validation error, but got none")
+	}
+}
+
+// TestRuleValidation is a function that tests the validation of rules.
+//
+// The function takes no parameters.
+// It does not return any values.
+func TestRuleValidation(t *testing.T) {
+	validRule := Rule{
+		Name: "ValidRule",
+		Conditions: Conditions{
+			All: []Condition{
+				{Fact: "age", Operator: "equal", Value: 25},
+			},
+		},
+	}
+
+	invalidRule := Rule{
+		Name: "InvalidRule",
+		Conditions: Conditions{
+			All: []Condition{
+				{Fact: "age", Operator: "invalidOperator", Value: 25},
+			},
+		},
+	}
+
+	if err := validRule.Validate(); err != nil {
+		t.Errorf("Expected no error for valid rule, but got: %v", err)
+	}
+
+	if err := invalidRule.Validate(); err == nil {
+		t.Errorf("Expected validation error for invalid rule, but got none")
+	}
+}
+
+// TestEvaluateSimpleConditionWithUnmatchedFact tests the evaluateSimpleCondition function
+// with an unmatched fact.
+//
+// It sets up a condition and a fact, and then tests the behavior of the function
+// with two different scenarios: "Ignore" and "Error".
+// For the "Ignore" scenario, it expects the function to return false.
+// For the "Error" scenario, it expects the function to return an error.
+
+func TestEvaluateSimpleConditionWithUnmatchedFact(t *testing.T) {
+	condition := Condition{
+		Fact:     "city",
+		Operator: "equal",
+		Value:    "Seattle",
+	}
+	fact := Fact{
+		"age": 30,
+	}
+
+	// Test for "Ignore" behavior
+	result, _, _, err := condition.evaluateSimpleCondition(fact, "Ignore")
+	if err != nil {
+		t.Errorf("Error evaluating condition: %v", err)
+	}
+	if result {
+		t.Errorf("Expected condition to be false for Ignore behavior, but got true")
+	}
+
+	// Test for "Error" behavior
+	_, _, _, err = condition.evaluateSimpleCondition(fact, "Error")
+	if err == nil {
+		t.Errorf("Expected an error for unmatched fact with Error behavior, but got none")
+	}
+}
+
+func TestEvaluateAnyConditionsError(t *testing.T) {
+	rule := Rule{
+		Name: "TestRule",
+		Conditions: Conditions{
+			Any: []Condition{
+				{Fact: "age", Operator: "invalidOperator", Value: 25},
+			},
+		},
+	}
+	fact := Fact{
+		"age": 30,
+	}
+
+	_, err := rule.Evaluate(fact, true, "Error")
+	if err == nil {
+		t.Errorf("Expected an error due to invalid operator, but got none")
 	}
 }

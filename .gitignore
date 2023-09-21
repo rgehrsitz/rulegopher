@@ -17,3 +17,4 @@
 # vendor/
 
 main.go
+pkg/rules/coverage.html
