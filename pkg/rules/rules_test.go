@@ -944,3 +944,117 @@ func TestEvaluateAnyConditionsError(t *testing.T) {
 		t.Errorf("Expected an error due to invalid operator, but got none")
 	}
 }
+
+// TestValidateWithNestedConditions is a test function that validates a rule with nested conditions.
+//
+// This function defines a rule with nested conditions and validates the rule. It creates a Rule struct
+// with a Name field set to "TestRuleWithNestedConditions" and a Conditions field that contains nested
+// conditions. The nested conditions are defined using the All and Any fields of the Conditions struct.
+// The All field contains a Condition struct that checks if the "temperature" fact is greater than 32.
+// The Any field contains a Condition struct that checks if the "humidity" fact is less than 50.
+//
+// The function then calls the rule.Validate() method to validate the rule. It expects no error to be
+// returned, and if an error is returned, the function fails the test with a fatal error message.
+
+func TestValidateWithNestedConditions(t *testing.T) {
+	// Define a rule with nested conditions
+	rule := &Rule{
+		Name: "TestRuleWithNestedConditions",
+		Conditions: Conditions{
+			All: []Condition{
+				{
+					All: []Condition{
+						{
+							Fact:     "temperature",
+							Operator: "greaterThan",
+							Value:    32,
+						},
+					},
+				},
+				{
+					Any: []Condition{
+						{
+							Fact:     "humidity",
+							Operator: "lessThan",
+							Value:    50,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Validate the rule
+	err := rule.Validate()
+	if err != nil {
+		t.Fatalf("Expected no error, but got: %v", err)
+	}
+}
+
+// TestEvaluateSimpleConditionNotContains tests the evaluateSimpleCondition function
+// when the condition operator is "notContains".
+//
+// It tests the behavior of the function by providing different test cases
+// with different types of facts and expected results.
+// Each test case includes a name, a condition, a fact, and the expected result.
+// The function runs each test case and compares the actual result with the expected result.
+// If the results do not match, the function reports an error.
+// This function is used for testing the behavior of the evaluateSimpleCondition function.
+func TestEvaluateSimpleConditionNotContains(t *testing.T) {
+	tests := []struct {
+		name      string
+		condition Condition
+		fact      Fact
+		expected  bool
+	}{
+		{
+			name: "String not contains",
+			condition: Condition{
+				Fact:     "testFact",
+				Operator: "notContains",
+				Value:    "world",
+			},
+			fact:     Fact{"testFact": "hello universe"},
+			expected: true,
+		},
+		{
+			name: "String contains",
+			condition: Condition{
+				Fact:     "testFact",
+				Operator: "notContains",
+				Value:    "hello",
+			},
+			fact:     Fact{"testFact": "hello world"},
+			expected: false,
+		},
+		{
+			name: "Slice not contains",
+			condition: Condition{
+				Fact:     "testFact",
+				Operator: "notContains",
+				Value:    "three",
+			},
+			fact:     Fact{"testFact": []string{"one", "two"}},
+			expected: true,
+		},
+		{
+			name: "Slice contains",
+			condition: Condition{
+				Fact:     "testFact",
+				Operator: "notContains",
+				Value:    "one",
+			},
+			fact:     Fact{"testFact": []string{"one", "two", "three"}},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, _, _, _ := tt.condition.evaluateSimpleCondition(tt.fact, "Ignore")
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}

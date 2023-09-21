@@ -4,7 +4,7 @@ github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:56.21,59.3 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:61.2,61.59 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:66.33,78.45 2 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:78.45,79.55 1 1
-github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:79.55,81.12 1 0
+github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:79.55,81.12 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:83.3,83.55 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:83.55,85.4 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:88.2,88.45 1 1
@@ -20,7 +20,7 @@ github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:108.48,110.3 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:111.2,111.43 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:111.43,116.3 4 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:118.2,119.16 2 1
-github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:119.16,121.3 1 0
+github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:119.16,121.3 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:122.2,122.18 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:122.18,123.28 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:123.28,128.4 4 1
@@ -61,7 +61,7 @@ github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:218.57,220.5 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:221.4,222.44 2 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:222.44,224.5 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:225.22,228.58 3 1
-github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:228.58,230.5 1 0
+github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:228.58,230.5 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:231.4,232.45 2 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:232.45,234.5 1 1
 github.com/rgehrsitz/rulegopher/pkg/rules/rules.go:236.3,236.30 1 1
