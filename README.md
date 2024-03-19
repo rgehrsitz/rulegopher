@@ -1,5 +1,8 @@
 # Rulegopher
 
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue)](#license)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rgehrsitz/rulegopher)](https://goreportcard.com/report/github.com/rgehrsitz/rulegopher)
+
 Rulegopher is a rule engine written in Go. It allows you to define rules and facts, and evaluate these facts against the rules. The engine triggers events when certain conditions are met.
 
 ## Features
