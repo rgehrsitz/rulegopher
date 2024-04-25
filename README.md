@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rgehrsitz/rulegopher)](https://goreportcard.com/report/github.com/rgehrsitz/rulegopher)
-[![Go Report Card](https://img.shields.io/badge/Auto_Wiki-Mutable.ai-blue)](https://img.shields.io/badge/Auto_Wiki-Mutable.ai-blue)
+[![Auto Wiki](https://img.shields.io/badge/Auto_Wiki-Mutable.ai-blue)](https://wiki.mutable.ai/rgehrsitz/rulegopher)
 
 Rulegopher is a rule engine written in Go. It allows you to define rules and facts, and evaluate these facts against the rules. The engine triggers events when certain conditions are met.
 
